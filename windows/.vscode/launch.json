@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug AudioStreamer Plugin",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/../build/windows/x64/runner/Debug/audiostreamer.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}/..",
+      "environment": [],
+      "console": "internalConsole",
+      "preLaunchTask": "build"
+    }
+  ]
+}
