@@ -155,6 +155,8 @@ namespace recording
 		{
 			IMFAttributes *pAttributes = NULL;
 			hr = MFCreateAttributes(&pAttributes, 2);
+			// Enable speech processing mode for AEC, NS, AGC
+			pAttributes->SetUINT32(MF_AUDIO_RENDERER_ATTRIBUTE_FLAGS, MF_AUDIO_RENDERER_ATTRIBUTE_FLAG_ENABLE_VOICE);
 
 			// Set the device type to audio.
 			if (SUCCEEDED(hr))

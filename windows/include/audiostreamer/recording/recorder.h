@@ -9,6 +9,8 @@
 
 using namespace flutter;
 
+#define MF_AUDIO_RENDERER_ATTRIBUTE_FLAG_ENABLE_VOICE 0x1
+
 namespace recording
 {
 	class Recorder : public IMFSourceReaderCallback

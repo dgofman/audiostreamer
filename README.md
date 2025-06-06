@@ -17,6 +17,18 @@
 
 ---
 
+## 🎙️ Voice Processing Support (AEC, NS, AGC)
+
+This project uses **Media Foundation** to capture microphone input and includes support for:
+
+- 🎧 **Acoustic Echo Cancellation (AEC)**
+- 🔇 **Noise Suppression (NS)**
+- 🎚️ **Automatic Gain Control (AGC)**
+
+[Audio Renderer Attributes – Win32 apps | Microsoft Learn](https://learn.microsoft.com/en-us/windows/win32/medfound/audio-renderer-attributes)
+[MF_AUDIO_RENDERER_ATTRIBUTE_FLAGS attribute | Microsoft Learn](https://learn.microsoft.com/en-us/windows/win32/medfound/mf-audio-renderer-attribute-flags-attribute)
+[Alphabetical List of Media Foundation Attributes] (https://learn.microsoft.com/en-us/windows/win32/medfound/alphabetical-list-of-media-foundation-attributes)
+
 ## 🚀 Getting Started
 
 Add the plugin to your Flutter project:
