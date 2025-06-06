@@ -72,7 +72,7 @@ class _MyWidgetState extends State<MyApp> {
         print(device?["label"]);
         await _record.start(device?["id"]);
 
-        _recordStreamSubscription = _record.stream().listen(
+        _recordStreamSubscription = _record.stream.listen(
               (data) => _recordChannel.sink.add(data),
               onError: (e) => setState(() => status = "WebSocket error: $e"),
               onDone: () => setState(() => status = "WebSocket closed"),

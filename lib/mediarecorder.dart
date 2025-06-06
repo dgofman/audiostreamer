@@ -51,7 +51,7 @@ class MediaRecorder extends PlatformInterface {
     return await _create(() => _instance.isRecording(_recorderId));
   }
 
-  Stream<Uint8List> stream() {
+  Stream<Uint8List> get stream {
     return _instance.stream(_recorderId);
   }
 
