@@ -1,10 +1,5 @@
 #include "recorder.h"
-#include "audiostreamer.h"
-
-constexpr const char *kEncoder = "pcm16bits";
-constexpr uint32_t kBitRate = 128000;
-constexpr uint32_t kSampleRate = 16000;
-constexpr uint32_t kChannels = 1;
+#include "mediarecorder.h"
 
 namespace recording
 {
@@ -88,7 +83,7 @@ namespace recording
 							if (m_recordEventHandler)
 							{
 								std::vector<uint8_t> bytes(pChunk, pChunk + size);
-								AudioStreamer::CallbackHandler([this, bytes]() -> void
+								MediaRecorder::CallbackHandler([this, bytes]() -> void
 															   { m_recordEventHandler->Success(std::make_unique<flutter::EncodableValue>(bytes)); });
 							}
 							pBuffer->Unlock();
@@ -229,15 +224,15 @@ namespace recording
 				}
 				if (SUCCEEDED(hr))
 				{
-					hr = pMediaType->SetUINT32(MF_MT_AVG_BITRATE, kBitRate);
+					hr = pMediaType->SetUINT32(MF_MT_AVG_BITRATE, 128000);
 				}
 				if (SUCCEEDED(hr))
 				{
-					hr = pMediaType->SetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, kSampleRate);
+					hr = pMediaType->SetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, 48000);
 				}
 				if (SUCCEEDED(hr))
 				{
-					hr = pMediaType->SetUINT32(MF_MT_AUDIO_NUM_CHANNELS, kChannels);
+					hr = pMediaType->SetUINT32(MF_MT_AUDIO_NUM_CHANNELS, 2);
 				}
 				if (SUCCEEDED(hr))
 				{
@@ -264,7 +259,7 @@ namespace recording
 		}
 		if (SUCCEEDED(hr))
 		{
-			UpdateState(RecordState::START);
+			UpdateState(RecordState::RECORD);
 		}
 		else
 		{
@@ -305,7 +300,7 @@ namespace recording
 
 			if (SUCCEEDED(hr))
 			{
-				UpdateState(RecordState::START);
+				UpdateState(RecordState::RECORD);
 			}
 		}
 
@@ -331,7 +326,7 @@ namespace recording
 
 	bool Recorder::IsRecording()
 	{
-		return m_recordState == RecordState::START;
+		return m_recordState == RecordState::RECORD;
 	}
 
 	HRESULT Recorder::EndRecording()
@@ -376,7 +371,7 @@ namespace recording
 		m_recordState = state;
 		if (m_stateEventHandler)
 		{
-			AudioStreamer::CallbackHandler([this, state]() -> void
+			MediaRecorder::CallbackHandler([this, state]() -> void
 										   { m_stateEventHandler->Success(std::make_unique<flutter::EncodableValue>(state)); });
 		}
 	}

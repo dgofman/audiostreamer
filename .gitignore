@@ -39,8 +39,17 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# Custom Ignore
+.gitignore
+.metadata
+
+android/
+ios/
+linux/
+macos/
+web/
+windows/flutter/
+windows/runner/
+
 pubspec.lock
+analysis_options.yaml

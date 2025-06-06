@@ -70,8 +70,10 @@ else()
   # Define the plugin target
   add_library(${PLUGIN_NAME} SHARED
     "include/audiostreamer/audio_streamer_plugin.cpp"
-    "include/audiostreamer/recording/audiostreamer.cpp"
+    "include/audiostreamer/recording/mediarecorder.cpp"
     "include/audiostreamer/recording/recorder.cpp"
+    "include/audiostreamer/playback/mediaplayer.cpp"
+    "include/audiostreamer/playback/player.cpp"
   )
 
   # Add dependency libraries and include directories.

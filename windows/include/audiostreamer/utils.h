@@ -9,22 +9,6 @@
 
 using Microsoft::WRL::ComPtr; // Enables ComPtr smart pointer usage
 
-template <typename T>
-static bool GetValueFromEncodableMap(const flutter::EncodableMap *map,
-									 const char *key, T &out)
-{
-	auto iter = map->find(flutter::EncodableValue(key));
-	if (iter != map->end() && !iter->second.IsNull())
-	{
-		if (auto *value = std::get_if<T>(&iter->second))
-		{
-			out = *value;
-			return true;
-		}
-	}
-	return false;
-}
-
 template <class T>
 inline void SafeRelease(T *&pT)
 {
@@ -60,7 +44,7 @@ inline std::string ToUtf8(const wchar_t *utf16_string)
 
 inline void ErrorMessage(const std::string &error_message, flutter::MethodResult<flutter::EncodableValue> &result)
 {
-	result.Error("AudioStreamer", "", flutter::EncodableValue(error_message));
+	result.Error("AudioStreamer", "Error", flutter::EncodableValue(error_message));
 }
 
 inline void ResultError(HRESULT hr, flutter::MethodResult<flutter::EncodableValue> &result)
@@ -69,7 +53,7 @@ inline void ResultError(HRESULT hr, flutter::MethodResult<flutter::EncodableValu
 	ErrorMessage(ToUtf8(err.ErrorMessage()), result);
 }
 
-inline HRESULT ListDevices(flutter::MethodResult<flutter::EncodableValue> &result)
+inline HRESULT GetDevices(flutter::EncodableMap &resultMap)
 {
 	flutter::EncodableList inputDevices;
 	flutter::EncodableList outputDevices;
@@ -160,12 +144,11 @@ inline HRESULT ListDevices(flutter::MethodResult<flutter::EncodableValue> &resul
 	}
 
 	// -------- Combine & Return --------
-	flutter::EncodableMap resultMap = {
+	resultMap = {
 		{flutter::EncodableValue("inputs"), flutter::EncodableValue(inputDevices)},
 		{flutter::EncodableValue("outputs"), flutter::EncodableValue(outputDevices)},
 	};
 
-	result.Success(flutter::EncodableValue(resultMap));
 	return hr;
 }
 

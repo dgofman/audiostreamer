@@ -1,36 +1,35 @@
 import 'dart:async';
 import 'dart:typed_data';
-import 'package:audiostreamer/audiostreamer_method_channel.dart';
+import 'package:socket_audiostreamer/mediarecorder_channel.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
-class Audiostreamer extends PlatformInterface {
+class MediaRecorder extends PlatformInterface {
   static final Object _token = Object();
 
-  static final _instance = AudioStreamerMethodChannel();
+  static final _instance = MediaRecorderChannel();
 
   late String _recorderId;
-  late StreamController? _streamController;
-  StreamSubscription? _streamSubscription;
+  late StreamController? _stateController;
+  StreamSubscription? _stateSubscription;
   bool _created = false;
 
   // Constructor with PlatformInterface verification token
-  Audiostreamer() : super(token: _token);
+  MediaRecorder() : super(token: _token);
 
   Future<T> _create<T>(Future<T> Function() callback) async {
     if (!_created) {
       _recorderId = DateTime.now().millisecondsSinceEpoch.toString();
       await _instance.create(_recorderId);
-      _streamController = StreamController.broadcast();
-      final stream = _instance.listen(_recorderId);
-      _streamSubscription = stream.listen(
+      _stateController = StreamController.broadcast();
+      _stateSubscription = _instance.listen(_recorderId).listen(
         (state) {
-          if (_streamController?.hasListener ?? false) {
-            _streamController?.add(state);
+          if (_stateController?.hasListener ?? false) {
+            _stateController?.add(state);
           }
         },
         onError: (error) {
-          if (_streamController?.hasListener ?? false) {
-            _streamController?.addError(error);
+          if (_stateController?.hasListener ?? false) {
+            _stateController?.addError(error);
           }
         },
       );
@@ -68,16 +67,16 @@ class Audiostreamer extends PlatformInterface {
   }
 
   Future<void> dispose() async {
-    await _streamSubscription?.cancel();
-    await _streamController?.close();
-    _streamSubscription = null;
+    await _stateSubscription?.cancel();
+    await _stateController?.close();
+    _stateSubscription = null;
     if (_created) {
       _instance.dispose(_recorderId);
     }
     _created = false;
   }
 
-  Future<Map<dynamic, dynamic>> listDevices() async {
+  Future<List<dynamic>> listDevices() async {
     return await _create(() => _instance.listDevices(_recorderId));
   }
 }

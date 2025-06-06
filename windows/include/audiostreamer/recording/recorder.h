@@ -17,7 +17,7 @@ namespace recording
 {
 	enum RecordState
 	{
-		START,
+		RECORD,
 		STOP,
 		PAUSE
 	};

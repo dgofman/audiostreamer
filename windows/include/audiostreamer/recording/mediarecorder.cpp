@@ -1,5 +1,4 @@
-
-#include "audiostreamer.h"
+#include "mediarecorder.h"
 #include <mfreadwrite.h>
 #include <Mferror.h>
 #include <deque>
@@ -28,10 +27,10 @@ namespace
 
 namespace recording
 {
-	AudioStreamer::AudioStreamer(PluginRegistrarWindows* registrar)
+	MediaRecorder::MediaRecorder(PluginRegistrarWindows* registrar)
     : registrar_(registrar) {}
 
-	AudioStreamer::~AudioStreamer()
+	MediaRecorder::~MediaRecorder()
 	{
 		for (const auto &[recorderId, recorder] : m_recorders)
 		{
@@ -40,15 +39,15 @@ namespace recording
 		registrar_->UnregisterTopLevelWindowProcDelegate(window_proc_delegate);
 	}
 
-	void AudioStreamer::RegisterWithRegistrar(PluginRegistrarWindows *registrar)
+	void MediaRecorder::RegisterWithRegistrar(PluginRegistrarWindows *registrar)
 	{
 		binary_messenger = registrar->messenger();
 
 		auto methodChannel = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
-			binary_messenger, "com.softigent.audiostreamer",
+			binary_messenger, "com.softigent.audiostreamer.MediaRecorder",
 			&flutter::StandardMethodCodec::GetInstance());
 
-		auto plugin = std::make_unique<AudioStreamer>(registrar);
+		auto plugin = std::make_unique<MediaRecorder>(registrar);
 		methodChannel->SetMethodCallHandler(
 			[plugin_pointer = plugin.get()](const auto &call, auto result)
 			{
@@ -75,35 +74,33 @@ namespace recording
 			});
 	}
 
-	void AudioStreamer::CallbackHandler(std::function<void()> callback)
+	void MediaRecorder::CallbackHandler(std::function<void()> callback)
 	{
 		delegate_callbacks.push_back(callback);
 		PostMessage(root_window_getter(), WM_SETFONT, 0, 0);
 	}
 
-	void AudioStreamer::AudioStreamer::SetMethodCallHandler(
-		const MethodCall<EncodableValue> &method_call,
+	void MediaRecorder::MediaRecorder::SetMethodCallHandler(
+		const MethodCall<EncodableValue> &methodCall,
 		std::unique_ptr<MethodResult<EncodableValue>> result)
 	{
-		const auto args = method_call.arguments();
-		const auto *params = std::get_if<EncodableMap>(args);
-		if (!params)
-		{
-			ErrorMessage("Call missing parameters", *result);
+		const auto* arguments = std::get_if<flutter::EncodableMap>(methodCall.arguments());
+		if (!arguments) {
+			ErrorMessage("Expected map of arguments", *result);
 			return;
 		}
 
 		std::string recorderId;
-		GetValueFromEncodableMap(params, "recorderId", recorderId);
-		if (recorderId.empty())
-		{
+		auto rId = arguments->find(flutter::EncodableValue("recorderId"));
+		if (rId != arguments->end() && std::holds_alternative<std::string>(rId->second)) {
+			recorderId = std::get<std::string>(rId->second);
+		} else {
 			ErrorMessage("Call missing mandatory parameter recorderId", *result);
 			return;
 		}
 
 		// Use the constexpr function instead of a lambda
-		const std::string &method = method_call.method_name();
-		const uint32_t methodHash = HashMethodName(method.c_str());
+		const uint32_t methodHash = HashMethodName(methodCall.method_name().c_str());
 		HRESULT hr;
 
 		if (methodHash == kCreate)
@@ -130,29 +127,17 @@ namespace recording
 		{
 		case kHasPermission:
 			result->Success(EncodableValue(true));
-			break;
+			return;
 
 		case kStart:
 		{
-			std::string deviceId;
-			GetValueFromEncodableMap(params, "deviceId", deviceId);
-
-			if (deviceId.length() != 0)
-			{
+			auto dId = arguments->find(flutter::EncodableValue("deviceId"));
+			if (dId != arguments->end() && std::holds_alternative<std::string>(dId->second)) {
+				std::string deviceId = std::get<std::string>(dId->second);
 				std::wstring deviceIdW = std::wstring(deviceId.begin(), deviceId.end());
 				hr = recorder->Start(recorderId, deviceIdW.c_str());
-			}
-			else
-			{
+			} else {
 				hr = recorder->Start(recorderId, NULL);
-			}
-			if (SUCCEEDED(hr))
-			{
-				result->Success(EncodableValue());
-			}
-			else
-			{
-				ResultError(hr, *result);
 			}
 			break;
 		}
@@ -160,48 +145,24 @@ namespace recording
 		case kStop:
 		{
 			hr = recorder->Stop();
-			if (SUCCEEDED(hr))
-			{
-				result->Success(EncodableValue());
-			}
-			else
-			{
-				ResultError(hr, *result);
-			}
 			break;
 		}
 
 		case kPause:
 			hr = recorder->Pause();
-			if (SUCCEEDED(hr))
-			{
-				result->Success(EncodableValue());
-			}
-			else
-			{
-				ResultError(hr, *result);
-			}
 			break;
 
 		case kResume:
 			hr = recorder->Resume();
-			if (SUCCEEDED(hr))
-			{
-				result->Success(EncodableValue());
-			}
-			else
-			{
-				ResultError(hr, *result);
-			}
 			break;
 
 		case kIsPaused:
 			result->Success(EncodableValue(recorder->IsPaused()));
-			break;
+			return;
 
 		case kIsRecording:
 			result->Success(EncodableValue(recorder->IsRecording()));
-			break;
+			return;
 
 		case kDispose:
 		{
@@ -212,41 +173,56 @@ namespace recording
 				m_recorders.erase(it);
 			}
 			result->Success();
-			break;
+			return;
 		}
 
 		case kListDevices:
 		{
-			ListDevices(*result);
+			EncodableMap resultMap;
+			HRESULT hr = GetDevices(resultMap);
+			if (SUCCEEDED(hr)) {
+				result->Success(EncodableValue(resultMap["inputs"]));
+				return;
+			}
 			break;
 		}
 
 		default:
 			result->NotImplemented();
-			break;
+			return;
+		}
+
+		// Return Status
+		if (SUCCEEDED(hr))
+		{
+			result->Success(EncodableValue());
+		}
+		else
+		{
+			ResultError(hr, *result);
 		}
 	}
 
-	HRESULT AudioStreamer::CreateEventStreamHandlers(std::string recorderId)
+	HRESULT MediaRecorder::CreateEventStreamHandlers(std::string recorderId)
 	{
-		auto eventHandler = new EventStreamHandler<>();
-		std::unique_ptr<StreamHandler<EncodableValue>> pStateEventHandler{static_cast<StreamHandler<EncodableValue> *>(eventHandler)};
+		auto stateEventHandler = new EventStreamHandler<>();
+		std::unique_ptr<StreamHandler<EncodableValue>> pStateEventHandler{static_cast<StreamHandler<EncodableValue> *>(stateEventHandler)};
 
-		auto eventChannel = std::make_unique<EventChannel<EncodableValue>>(
-			binary_messenger, "com.softigent.audiostreamer/events/" + recorderId,
+		auto stateEventChannel = std::make_unique<EventChannel<EncodableValue>>(
+			binary_messenger, "com.softigent.audiostreamer/recordState/" + recorderId,
 			&StandardMethodCodec::GetInstance());
-		eventChannel->SetStreamHandler(std::move(pStateEventHandler));
+		stateEventChannel->SetStreamHandler(std::move(pStateEventHandler));
 
-		auto eventRecordHandler = new EventStreamHandler<>();
-		std::unique_ptr<StreamHandler<EncodableValue>> pRecordEventHandler{static_cast<StreamHandler<EncodableValue> *>(eventRecordHandler)};
+		auto recordEventHandler = new EventStreamHandler<>();
+		std::unique_ptr<StreamHandler<EncodableValue>> pRecordEventHandler{static_cast<StreamHandler<EncodableValue> *>(recordEventHandler)};
 
-		auto eventRecordChannel = std::make_unique<EventChannel<EncodableValue>>(
-			binary_messenger, "com.softigent.audiostreamer/records/" + recorderId,
+		auto recordEventChannel = std::make_unique<EventChannel<EncodableValue>>(
+			binary_messenger, "com.softigent.audiostreamer/recordEvent/" + recorderId,
 			&StandardMethodCodec::GetInstance());
-		eventRecordChannel->SetStreamHandler(std::move(pRecordEventHandler));
+		recordEventChannel->SetStreamHandler(std::move(pRecordEventHandler));
 
 		Recorder *raw_recorder = nullptr;
-		HRESULT hr = Recorder::CreateInstance(eventHandler, eventRecordHandler, &raw_recorder);
+		HRESULT hr = Recorder::CreateInstance(stateEventHandler, recordEventHandler, &raw_recorder);
 		if (SUCCEEDED(hr))
 		{
 			m_recorders.insert(std::make_pair(recorderId, std::move(raw_recorder)));
@@ -254,4 +230,4 @@ namespace recording
 
 		return hr;
 	}
-} // namespace record_windows
+} // namespace record

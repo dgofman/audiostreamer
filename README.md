@@ -36,9 +36,9 @@ flutter pub get
 ## Usage
 
 ```dart
-import 'package:audiostreamer/audiostreamer.dart';
+import 'package:audiostreamer/mediarecorder.dart';
 
-final recorder = AudioStreamer();
+final recorder = MediaRecorder();
 
 await recorder.start();
 await recorder.pause();

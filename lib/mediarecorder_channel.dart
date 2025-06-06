@@ -1,8 +1,7 @@
 import 'package:flutter/services.dart';
 
-class AudioStreamerMethodChannel {
-
-  final _methodChannel = const MethodChannel('com.softigent.audiostreamer');
+class MediaRecorderChannel {
+  final _methodChannel = const MethodChannel('com.softigent.audiostreamer.MediaRecorder');
 
   Future<void> create(String recorderId) {
     return _methodChannel.invokeMethod<void>(
@@ -20,18 +19,13 @@ class AudioStreamerMethodChannel {
   }
 
   Future<Stream<Uint8List>> start(String recorderId, String? deviceId) async {
-    final eventRecordChannel = EventChannel(
-      'com.softigent.audiostreamer/records/$recorderId',
+    final recordEventChannel = EventChannel(
+      'com.softigent.audiostreamer/recordEvent/$recorderId',
     );
 
-    await _methodChannel.invokeMethod('start', {
-      'recorderId': recorderId,
-      'deviceId': deviceId
-    });
+    await _methodChannel.invokeMethod('start', {'recorderId': recorderId, 'deviceId': deviceId});
 
-    return eventRecordChannel
-        .receiveBroadcastStream()
-        .map<Uint8List>((data) => data);
+    return recordEventChannel.receiveBroadcastStream().map<Uint8List>((data) => data);
   }
 
   Future<String?> stop(String recorderId) async {
@@ -66,7 +60,7 @@ class AudioStreamerMethodChannel {
     return result ?? false;
   }
 
-  Future<bool> isRecording(String recorderId)  async {
+  Future<bool> isRecording(String recorderId) async {
     final result = await _methodChannel.invokeMethod<bool>(
       'isRecording',
       {'recorderId': recorderId},
@@ -74,24 +68,25 @@ class AudioStreamerMethodChannel {
     return result ?? false;
   }
 
-  Future<void> dispose(String recorderId)  async {
+  Future<void> dispose(String recorderId) async {
     await _methodChannel.invokeMethod(
       'dispose',
       {'recorderId': recorderId},
     );
   }
 
-  Stream<dynamic> listen(String recorderId) {
-    final eventChannel = EventChannel(
-      'com.softigent.audiostreamer/events/$recorderId',
+  Stream<dynamic> listen(String playerId) {
+    final stateEventChannel = EventChannel(
+      'com.softigent.audiostreamer/recordState/$playerId',
     );
-    return eventChannel.receiveBroadcastStream();
+    return stateEventChannel.receiveBroadcastStream();
   }
 
-  Future<Map<Object?, Object?>> listDevices(String recorderId) async {
-    return await _methodChannel.invokeMethod<Map<Object?, Object?>>(
-      'listDevices',
-      {'recorderId': recorderId},
-    ) ?? {};
+  Future<List<dynamic>> listDevices(String recorderId) async {
+    return await _methodChannel.invokeMethod<dynamic>(
+          'listDevices',
+          {'recorderId': recorderId},
+        ) ??
+        [];
   }
 }

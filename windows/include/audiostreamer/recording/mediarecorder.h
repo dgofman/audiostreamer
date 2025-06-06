@@ -1,5 +1,5 @@
-#ifndef FLUTTER_PLUGIN_AUDIO_STREAMER_H_
-#define FLUTTER_PLUGIN_AUDIO_STREAMER_H_
+#ifndef FLUTTER_PLUGIN_MEDIA_RECORDER_H_
+#define FLUTTER_PLUGIN_MEDIA_RECORDER_H_
 
 #include <flutter/plugin_registrar_windows.h>
 #include <flutter/standard_method_codec.h>
@@ -10,11 +10,11 @@ using namespace flutter;
 
 namespace recording
 {
-	class AudioStreamer : public flutter::Plugin
+	class MediaRecorder : public flutter::Plugin
 	{
 	public:
-		explicit AudioStreamer(flutter::PluginRegistrarWindows *registrar);
-		virtual ~AudioStreamer();
+		explicit MediaRecorder(flutter::PluginRegistrarWindows *registrar);
+		virtual ~MediaRecorder();
 		static void RegisterWithRegistrar(flutter::PluginRegistrarWindows *registrar);
 		static void CallbackHandler(std::function<void()> callback);
 
@@ -27,4 +27,4 @@ namespace recording
 
 } // namespace recording
 
-#endif // FLUTTER_PLUGIN_AUDIO_STREAMER_H_
+#endif // FLUTTER_PLUGIN_MEDIA_RECORDER_H_
