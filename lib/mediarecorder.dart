@@ -9,8 +9,6 @@ class MediaRecorder extends PlatformInterface {
   static final _instance = MediaRecorderChannel();
 
   late String _recorderId;
-  late StreamController? _stateController;
-  StreamSubscription? _stateSubscription;
   bool _created = false;
 
   // Constructor with PlatformInterface verification token
@@ -20,19 +18,6 @@ class MediaRecorder extends PlatformInterface {
     if (!_created) {
       _recorderId = DateTime.now().millisecondsSinceEpoch.toString();
       await _instance.create(_recorderId);
-      _stateController = StreamController.broadcast();
-      _stateSubscription = _instance.listen(_recorderId).listen(
-        (state) {
-          if (_stateController?.hasListener ?? false) {
-            _stateController?.add(state);
-          }
-        },
-        onError: (error) {
-          if (_stateController?.hasListener ?? false) {
-            _stateController?.addError(error);
-          }
-        },
-      );
       _created = true;
     }
     return callback();
@@ -42,8 +27,8 @@ class MediaRecorder extends PlatformInterface {
     return await _create(() => _instance.hasPermission(_recorderId));
   }
 
-  Future<Stream<Uint8List>> start(String? deviceId) async {
-    return await _create(() => _instance.start(_recorderId, deviceId));
+  Future<void> start(String? deviceId) async {
+    await _create(() => _instance.start(_recorderId, deviceId));
   }
 
   Future<String?> stop() async {
@@ -66,10 +51,11 @@ class MediaRecorder extends PlatformInterface {
     return await _create(() => _instance.isRecording(_recorderId));
   }
 
+  Stream<Uint8List> stream() {
+    return _instance.stream(_recorderId);
+  }
+
   Future<void> dispose() async {
-    await _stateSubscription?.cancel();
-    await _stateController?.close();
-    _stateSubscription = null;
     if (_created) {
       _instance.dispose(_recorderId);
     }

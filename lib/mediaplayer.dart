@@ -9,8 +9,6 @@ class MediaPlayer extends PlatformInterface {
   static final _instance = MediaPlayerChannel();
 
   late String _playerId;
-  late StreamController? _stateController;
-  StreamSubscription? _stateSubscription;
   bool _created = false;
 
   // Constructor with PlatformInterface verification token
@@ -20,19 +18,6 @@ class MediaPlayer extends PlatformInterface {
     if (!_created) {
       _playerId = DateTime.now().millisecondsSinceEpoch.toString();
       await _instance.create(_playerId);
-      _stateController = StreamController.broadcast();
-      _stateSubscription = _instance.listen(_playerId).listen(
-        (state) {
-          if (_stateController?.hasListener ?? false) {
-            _stateController?.add(state);
-          }
-        },
-        onError: (error) {
-          if (_stateController?.hasListener ?? false) {
-            _stateController?.addError(error);
-          }
-        },
-      );
       _created = true;
     }
     return callback();
@@ -42,7 +27,7 @@ class MediaPlayer extends PlatformInterface {
     return await _create(() => _instance.hasPermission(_playerId));
   }
 
-  Future<Stream<Uint8List>> start(String? deviceId) async {
+  Future<void> start(String? deviceId) async {
     return await _create(() => _instance.start(_playerId, deviceId));
   }
 
@@ -51,7 +36,9 @@ class MediaPlayer extends PlatformInterface {
   }
 
   Future<void> addChunk(Uint8List data) async {
-    return await _instance.addChunk(_playerId, data);
+    if (_created) {
+      await _instance.addChunk(_playerId, data);
+    }
   }
 
   Future<void> volume(double value) async {
@@ -67,9 +54,6 @@ class MediaPlayer extends PlatformInterface {
   }
 
   Future<void> dispose() async {
-    await _stateSubscription?.cancel();
-    await _stateController?.close();
-    _stateSubscription = null;
     if (_created) {
       _instance.dispose(_playerId);
     }

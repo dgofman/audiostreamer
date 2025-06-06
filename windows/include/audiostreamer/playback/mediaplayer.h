@@ -1,9 +1,8 @@
 #ifndef FLUTTER_PLUGIN_MEDIA_PLAYER_H_
 #define FLUTTER_PLUGIN_MEDIA_PLAYER_H_
 
-#include <flutter/plugin_registrar_windows.h>
-#include <flutter/standard_method_codec.h>
-#include <flutter/method_channel.h>
+#include <flutter/plugin_registrar_windows.h> // flutter::Plugin, flutter::PluginRegistrarWindows
+
 #include "player.h"
 
 using namespace flutter;
@@ -16,13 +15,12 @@ namespace playback
 		explicit MediaPlayer(flutter::PluginRegistrarWindows *registrar);
 		virtual ~MediaPlayer();
 		static void RegisterWithRegistrar(flutter::PluginRegistrarWindows *registrar);
-		static void CallbackHandler(std::function<void()> callback);
 
 	private:
 		flutter::PluginRegistrarWindows *registrar_; // store registrar
 		void SetMethodCallHandler(const MethodCall<EncodableValue> &method_call,
 								  std::unique_ptr<MethodResult<EncodableValue>> result);
-		HRESULT CreateEventStreamHandlers(std::string playerId);
+		HRESULT CreatePlayer(std::string playerId);
 	};
 
 } // namespace playback

@@ -1,20 +1,11 @@
 #include "player.h"
 #include "mediaplayer.h"
-#include <mfapi.h>
-#include <mferror.h>
-#include <mfidl.h>
-#include <mmdeviceapi.h>
-#include <functiondiscoverykeys_devpkey.h>
-
-constexpr uint32_t kChannels = 2;
 
 namespace playback
 {
-	HRESULT Player::CreateInstance(EventStreamHandler<> *stateEventHandler,
-								   EventStreamHandler<> *playerEventHandler,
-								   Player **ppPlayer)
+	HRESULT Player::CreateInstance(Player **ppPlayer)
 	{
-		auto pPlayer = new (std::nothrow) Player(stateEventHandler, playerEventHandler);
+		auto pPlayer = new (std::nothrow) Player();
 		if (pPlayer == NULL)
 		{
 			return E_OUTOFMEMORY;
@@ -23,15 +14,10 @@ namespace playback
 		return S_OK;
 	}
 
-	Player::Player(EventStreamHandler<> *stateEventHandler,
-				   EventStreamHandler<> *playerEventHandler)
-		: m_LockCount(1),
-		  m_audioClient(nullptr),
-		  m_renderClient(nullptr),
-		  m_stateEventHandler(stateEventHandler),
-		  m_playerEventHandler(playerEventHandler),
-		  m_listening(false),
-		  m_shutdown(false)
+	Player::Player() : m_audioClient(nullptr),
+					   m_renderClient(nullptr),
+					   m_listening(false),
+					   m_shutdown(false)
 	{
 		m_audioSamplesReadyEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 	}
@@ -122,14 +108,13 @@ namespace playback
 		{
 			// Match recorder format: 16kHz, mono, 16-bit
 			m_desiredFormat.wFormatTag = WAVE_FORMAT_PCM;
-			m_desiredFormat.nChannels = 2;
-			m_desiredFormat.nSamplesPerSec = 48000;
+			m_desiredFormat.nChannels = mixFormat->nChannels;
+			m_desiredFormat.nSamplesPerSec = mixFormat->nSamplesPerSec;
 			m_desiredFormat.wBitsPerSample = 16;
 			m_desiredFormat.nBlockAlign = m_desiredFormat.nChannels * (m_desiredFormat.wBitsPerSample / 8);
 			m_desiredFormat.nAvgBytesPerSec = m_desiredFormat.nSamplesPerSec * m_desiredFormat.nBlockAlign;
 			m_desiredFormat.cbSize = 0;
 		}
-		m_bytesPerFrame = m_desiredFormat.nBlockAlign;
 
 		// Check if desired format is supported
 		if (!IsFormatSupported(&m_desiredFormat))
@@ -179,7 +164,6 @@ namespace playback
 		{
 			hr = m_audioClient->Start();
 			m_listening = true;
-			UpdateState(PlayerState::START);
 		}
 
 		// Cleanup
@@ -197,12 +181,7 @@ namespace playback
 
 	HRESULT Player::Stop()
 	{
-		HRESULT hr = EndPlayback();
-		if (SUCCEEDED(hr))
-		{
-			UpdateState(PlayerState::STOP);
-		}
-		return hr;
+		return EndPlayback();
 	}
 
 	HRESULT Player::SetVolume(float volume)
@@ -365,15 +344,5 @@ namespace playback
 		}
 
 		CoUninitialize();
-	}
-
-	void Player::UpdateState(PlayerState state)
-	{
-		m_playerState = state;
-		if (m_stateEventHandler)
-		{
-			MediaPlayer::CallbackHandler([this, state]() -> void
-										 { m_stateEventHandler->Success(std::make_unique<flutter::EncodableValue>(static_cast<int>(state))); });
-		}
 	}
 };

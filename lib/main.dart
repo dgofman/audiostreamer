@@ -22,7 +22,7 @@ class _MyWidgetState extends State<MyApp> {
   late WebSocketChannel _recordChannel;
   late WebSocketChannel _playerChannel;
 
-  late StreamController<Uint8List> _audioBufferController;
+  StreamSubscription? _recordStreamSubscription;
   StreamSubscription? _playerStreamSubscription;
 
   final _record = MediaRecorder();
@@ -30,7 +30,7 @@ class _MyWidgetState extends State<MyApp> {
   bool _isRecording = false;
   bool _isCreated = false;
   bool _isListening = false;
-  double _volume = 1.0;
+  double _volume = 0.5;
   dynamic _selectedInputDevice;
   dynamic _selectedOutputDevice;
   List<dynamic> _inputDevices = [];
@@ -40,7 +40,6 @@ class _MyWidgetState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    _audioBufferController = StreamController<Uint8List>(sync: false);
     _initialize();
   }
 
@@ -61,21 +60,23 @@ class _MyWidgetState extends State<MyApp> {
       final recording = await _record.isRecording();
       if (recording) {
         await _record.stop();
+        _recordStreamSubscription?.cancel();
+        _recordChannel.sink.close();
         setState(() {
           _isRecording = !recording;
           status = "Stopped.";
         });
-        _recordChannel.sink.close();
       } else {
         _recordChannel = WebSocketChannel.connect(Uri.parse('ws://$HOST/recording'));
         dynamic device = _selectedInputDevice;
         print(device?["label"]);
-        final stream = await _record.start(device?["id"]);
-        stream.listen(
-          (data) => _recordChannel.sink.add(data),
-          onError: (e) => setState(() => status = "Stream error: $e"),
-          onDone: () => setState(() => status = "Stream closed"),
-        );
+        await _record.start(device?["id"]);
+
+        _recordStreamSubscription = _record.stream().listen(
+              (data) => _recordChannel.sink.add(data),
+              onError: (e) => setState(() => status = "WebSocket error: $e"),
+              onDone: () => setState(() => status = "WebSocket closed"),
+            );
         setState(() {
           _isRecording = !recording;
           status = "Recording...";
@@ -92,7 +93,6 @@ class _MyWidgetState extends State<MyApp> {
         await _player.stop();
         await _playerStreamSubscription?.cancel();
         _playerChannel.sink.close();
-        _audioBufferController.close();
         setState(() {
           _isListening = false;
           status = "Stopped listening";
@@ -104,27 +104,18 @@ class _MyWidgetState extends State<MyApp> {
         await _player.start(device?["id"]);
 
         // Listen to WebSocket and buffer
-        _playerChannel.stream.listen(
-          (data) {
-            if (data is Uint8List && !_audioBufferController.isClosed) {
-              _audioBufferController.add(data);
+        _playerStreamSubscription = _playerChannel.stream.listen(
+          (data) async {
+            if (data is Uint8List) {
+              await _player.addChunk(data);
             }
           },
           onError: (e) => setState(() => status = "WebSocket error: $e"),
           onDone: () => setState(() => status = "WebSocket closed"),
         );
 
-        // Drain buffer and feed to native player
-        _playerStreamSubscription = _audioBufferController.stream.listen(
-          (chunk) async {
-            await _player.addChunk(chunk);
-            await Future.delayed(Duration(milliseconds: 1)); // CPU-friendly pacing
-          },
-          onError: (e) => setState(() => status = "AddChunk error: $e"),
-          cancelOnError: false,
-        );
-
         setState(() {
+          _isCreated = true;
           _isListening = true;
           status = "Listening...";
         });
@@ -303,6 +294,7 @@ class _MyWidgetState extends State<MyApp> {
             await _player.dispose();
             setState(() {
               _isCreated = false;
+              _isListening = false;
               status = "Player disposed";
             });
           },
@@ -315,10 +307,11 @@ class _MyWidgetState extends State<MyApp> {
   @override
   void dispose() {
     _record.dispose();
-    _player.dispose();
     _recordChannel.sink.close();
+    _recordStreamSubscription?.cancel();
+
+    _player.dispose();
     _playerChannel.sink.close();
-    _audioBufferController.close();
     _playerStreamSubscription?.cancel();
     super.dispose();
   }

@@ -1,9 +1,7 @@
-#include "mediaplayer.h"
-#include <mfreadwrite.h>
-#include <Mferror.h>
-#include <deque>
+#include <flutter/method_channel.h>		   // flutter::MethodChannel
+#include <flutter/standard_method_codec.h> // flutter::StandardMethodCodec
 
-using namespace flutter;
+#include "mediaplayer.h"
 
 constexpr uint32_t kCreate = HashMethodName("create");
 constexpr uint32_t kHasPermission = HashMethodName("hasPermission");
@@ -75,12 +73,6 @@ namespace playback
 			});
 	}
 
-	void MediaPlayer::CallbackHandler(std::function<void()> callback)
-	{
-		delegate_callbacks.push_back(callback);
-		PostMessage(root_window_getter(), WM_SETFONT, 0, 0);
-	}
-
 	void MediaPlayer::MediaPlayer::SetMethodCallHandler(
 		const MethodCall<EncodableValue> &methodCall,
 		std::unique_ptr<MethodResult<EncodableValue>> result)
@@ -110,7 +102,7 @@ namespace playback
 
 		if (methodHash == kCreate)
 		{
-			hr = CreateEventStreamHandlers(playerId);
+			hr = CreatePlayer(playerId);
 			SUCCEEDED(hr) ? result->Success() : ResultError(hr, *result);
 			return;
 		}
@@ -159,19 +151,21 @@ namespace playback
 		case kAddChunk:
 		{
 			auto bytes_it = arguments->find(flutter::EncodableValue("bytes"));
-			if (bytes_it == arguments->end() || !std::holds_alternative<std::vector<uint8_t>>(bytes_it->second)) {
+			if (bytes_it == arguments->end() || !std::holds_alternative<std::vector<uint8_t>>(bytes_it->second))
+			{
 				ErrorMessage("Missing or invalid 'bytes' parameter", *result);
 				return;
 			}
-			const auto& bytes = std::get<std::vector<uint8_t>>(bytes_it->second);
-    		hr = player->AddChunk(bytes);
+			const auto &bytes = std::get<std::vector<uint8_t>>(bytes_it->second);
+			hr = player->AddChunk(bytes);
 			break;
 		}
 
 		case kVolume:
 		{
 			auto val = arguments->find(flutter::EncodableValue("value"));
-			if (val == arguments->end() || !std::holds_alternative<std::vector<uint8_t>>(val->second)) {
+			if (val == arguments->end() || !std::holds_alternative<double>(val->second))
+			{
 				ErrorMessage("Missing or invalid 'value' parameter", *result);
 				return;
 			}
@@ -205,7 +199,8 @@ namespace playback
 		{
 			EncodableMap resultMap;
 			HRESULT hr = GetDevices(resultMap);
-			if (SUCCEEDED(hr)) {
+			if (SUCCEEDED(hr))
+			{
 				result->Success(EncodableValue(resultMap["outputs"]));
 				return;
 			}
@@ -228,31 +223,14 @@ namespace playback
 		}
 	}
 
-	HRESULT MediaPlayer::CreateEventStreamHandlers(std::string playerId)
+	HRESULT MediaPlayer::CreatePlayer(std::string playerId)
 	{
-		auto stateEventHandler = new EventStreamHandler<>();
-		std::unique_ptr<StreamHandler<EncodableValue>> pStateEventHandler{static_cast<StreamHandler<EncodableValue> *>(stateEventHandler)};
-
-		auto stateEventChannel = std::make_unique<EventChannel<EncodableValue>>(
-			binary_messenger, "com.softigent.audiostreamer/playerState/" + playerId,
-			&StandardMethodCodec::GetInstance());
-		stateEventChannel->SetStreamHandler(std::move(pStateEventHandler));
-
-		auto playerEventHandler = new EventStreamHandler<>();
-		std::unique_ptr<StreamHandler<EncodableValue>> pPlayerEventHandler{static_cast<StreamHandler<EncodableValue> *>(playerEventHandler)};
-
-		auto playerEventChannel = std::make_unique<EventChannel<EncodableValue>>(
-			binary_messenger, "com.softigent.audiostreamer/playerEvent/" + playerId,
-			&StandardMethodCodec::GetInstance());
-		playerEventChannel->SetStreamHandler(std::move(pPlayerEventHandler));
-
 		Player *raw_player = nullptr;
-		HRESULT hr = Player::CreateInstance(stateEventHandler, playerEventHandler, &raw_player);
+		HRESULT hr = Player::CreateInstance(&raw_player);
 		if (SUCCEEDED(hr))
 		{
 			m_players.insert(std::make_pair(playerId, std::move(raw_player)));
 		}
-
 		return hr;
 	}
 } // namespace playback

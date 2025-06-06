@@ -2,8 +2,8 @@
 
 **AudioStreamer** is a Flutter plugin for **Windows** that enables **low-latency audio recording** using the native Media Foundation API.
 
-> 🎧 **Recording is currently supported.**  
-> 🔜 **Playback via WebSocket and speakers is coming soon.**
+> 🎙️ **Recording via WebSocket and microphone.**  
+> 🔊 **Playback via WebSocket and speakers.**
 
 ---
 

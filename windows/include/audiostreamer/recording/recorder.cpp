@@ -79,7 +79,7 @@ namespace recording
 
 						if (SUCCEEDED(hr))
 						{
-							// Send data to stream when there's no writer
+							// Send data to stream
 							if (m_recordEventHandler)
 							{
 								std::vector<uint8_t> bytes(pChunk, pChunk + size);
@@ -109,9 +109,9 @@ namespace recording
 		return hr;
 	}
 
-	HRESULT Recorder::CreateInstance(EventStreamHandler<> *stateEventHandler, EventStreamHandler<> *recordEventHandler, Recorder **ppRecorder)
+	HRESULT Recorder::CreateInstance(EventStreamHandler<> *recordEventHandler, Recorder **ppRecorder)
 	{
-		auto pRecorder = new (std::nothrow) Recorder(stateEventHandler, recordEventHandler);
+		auto pRecorder = new (std::nothrow) Recorder(recordEventHandler);
 		if (pRecorder == NULL)
 		{
 			return E_OUTOFMEMORY;
@@ -121,12 +121,11 @@ namespace recording
 		return S_OK;
 	}
 
-	Recorder::Recorder(EventStreamHandler<> *stateEventHandler, EventStreamHandler<> *recordEventHandler)
+	Recorder::Recorder(EventStreamHandler<> *recordEventHandler)
 		: m_LockCount(1),
 		  m_imfSource(NULL),
 		  m_imfReader(NULL),
 		  m_imfDescriptor(NULL),
-		  m_stateEventHandler(stateEventHandler),
 		  m_recordEventHandler(recordEventHandler)
 	{
 	}
@@ -257,11 +256,8 @@ namespace recording
 										 0,
 										 NULL, NULL, NULL, NULL);
 		}
-		if (SUCCEEDED(hr))
-		{
-			UpdateState(RecordState::RECORD);
-		}
-		else
+
+		if (!SUCCEEDED(hr))
 		{
 			EndRecording();
 		}
@@ -272,15 +268,14 @@ namespace recording
 	HRESULT Recorder::Pause()
 	{
 		HRESULT hr = S_OK;
-
 		if (m_imfSource)
 		{
 			hr = m_imfSource->Pause();
+		}
 
-			if (SUCCEEDED(hr))
-			{
-				UpdateState(RecordState::PAUSE);
-			}
+		if (SUCCEEDED(hr))
+		{
+			m_paused = true;
 		}
 
 		return S_OK;
@@ -297,11 +292,11 @@ namespace recording
 			var.vt = VT_EMPTY;
 
 			hr = m_imfSource->Start(m_imfDescriptor, NULL, &var);
+		}
 
-			if (SUCCEEDED(hr))
-			{
-				UpdateState(RecordState::RECORD);
-			}
+		if (SUCCEEDED(hr))
+		{
+			m_paused = false;
 		}
 
 		return hr;
@@ -309,24 +304,17 @@ namespace recording
 
 	HRESULT Recorder::Stop()
 	{
-		HRESULT hr = EndRecording();
-
-		if (SUCCEEDED(hr))
-		{
-			UpdateState(RecordState::STOP);
-		}
-
-		return hr;
+		return EndRecording();
 	}
 
 	bool Recorder::IsPaused()
 	{
-		return m_recordState == RecordState::PAUSE;
+		return m_paused;
 	}
 
 	bool Recorder::IsRecording()
 	{
-		return m_recordState == RecordState::RECORD;
+		return m_imfStarted;
 	}
 
 	HRESULT Recorder::EndRecording()
@@ -361,18 +349,7 @@ namespace recording
 	HRESULT Recorder::Dispose()
 	{
 		HRESULT hr = EndRecording();
-		m_stateEventHandler = nullptr;
 		m_recordEventHandler = nullptr;
 		return hr;
-	}
-
-	void Recorder::UpdateState(RecordState state)
-	{
-		m_recordState = state;
-		if (m_stateEventHandler)
-		{
-			MediaRecorder::CallbackHandler([this, state]() -> void
-										   { m_stateEventHandler->Success(std::make_unique<flutter::EncodableValue>(state)); });
-		}
 	}
 };

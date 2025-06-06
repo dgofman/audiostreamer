@@ -1,9 +1,9 @@
-#include "mediarecorder.h"
-#include <mfreadwrite.h>
-#include <Mferror.h>
 #include <deque>
 
-using namespace flutter;
+#include <flutter/method_channel.h>		   // flutter::MethodChannel
+#include <flutter/standard_method_codec.h> // flutter::StandardMethodCodec
+
+#include "mediarecorder.h"
 
 constexpr uint32_t kCreate = HashMethodName("create");
 constexpr uint32_t kHasPermission = HashMethodName("hasPermission");
@@ -105,7 +105,7 @@ namespace recording
 
 		if (methodHash == kCreate)
 		{
-			hr = CreateEventStreamHandlers(recorderId);
+			hr = CreateRecorder(recorderId);
 			SUCCEEDED(hr) ? result->Success() : ResultError(hr, *result);
 			return;
 		}
@@ -203,16 +203,8 @@ namespace recording
 		}
 	}
 
-	HRESULT MediaRecorder::CreateEventStreamHandlers(std::string recorderId)
+	HRESULT MediaRecorder::CreateRecorder(std::string recorderId)
 	{
-		auto stateEventHandler = new EventStreamHandler<>();
-		std::unique_ptr<StreamHandler<EncodableValue>> pStateEventHandler{static_cast<StreamHandler<EncodableValue> *>(stateEventHandler)};
-
-		auto stateEventChannel = std::make_unique<EventChannel<EncodableValue>>(
-			binary_messenger, "com.softigent.audiostreamer/recordState/" + recorderId,
-			&StandardMethodCodec::GetInstance());
-		stateEventChannel->SetStreamHandler(std::move(pStateEventHandler));
-
 		auto recordEventHandler = new EventStreamHandler<>();
 		std::unique_ptr<StreamHandler<EncodableValue>> pRecordEventHandler{static_cast<StreamHandler<EncodableValue> *>(recordEventHandler)};
 
@@ -222,7 +214,7 @@ namespace recording
 		recordEventChannel->SetStreamHandler(std::move(pRecordEventHandler));
 
 		Recorder *raw_recorder = nullptr;
-		HRESULT hr = Recorder::CreateInstance(stateEventHandler, recordEventHandler, &raw_recorder);
+		HRESULT hr = Recorder::CreateInstance(recordEventHandler, &raw_recorder);
 		if (SUCCEEDED(hr))
 		{
 			m_recorders.insert(std::make_pair(recorderId, std::move(raw_recorder)));

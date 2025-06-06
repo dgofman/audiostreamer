@@ -18,14 +18,8 @@ class MediaRecorderChannel {
     return result ?? false;
   }
 
-  Future<Stream<Uint8List>> start(String recorderId, String? deviceId) async {
-    final recordEventChannel = EventChannel(
-      'com.softigent.audiostreamer/recordEvent/$recorderId',
-    );
-
+  Future<void> start(String recorderId, String? deviceId) async {
     await _methodChannel.invokeMethod('start', {'recorderId': recorderId, 'deviceId': deviceId});
-
-    return recordEventChannel.receiveBroadcastStream().map<Uint8List>((data) => data);
   }
 
   Future<String?> stop(String recorderId) async {
@@ -75,11 +69,11 @@ class MediaRecorderChannel {
     );
   }
 
-  Stream<dynamic> listen(String playerId) {
-    final stateEventChannel = EventChannel(
-      'com.softigent.audiostreamer/recordState/$playerId',
+  Stream<Uint8List> stream(String recorderId) {
+    final recordEventChannel = EventChannel(
+      'com.softigent.audiostreamer/recordEvent/$recorderId',
     );
-    return stateEventChannel.receiveBroadcastStream();
+    return recordEventChannel.receiveBroadcastStream().map<Uint8List>((data) => data);
   }
 
   Future<List<dynamic>> listDevices(String recorderId) async {
