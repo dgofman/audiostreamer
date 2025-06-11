@@ -4,3 +4,5 @@
 - Supports microphone recording using Media Foundation.
 ## [0.1.2] - 2025-06-11
 - Renamed the package name
+## [0.1.3] - 2025-06-11
+- Deleted windows/runner/flutter_window.cpp

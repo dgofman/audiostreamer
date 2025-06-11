@@ -71,7 +71,11 @@ If you're testing the plugin from source:
 flutter config --enable-windows-desktop
 flutter create example
 cd example
+```
 
+- Copy `../lib` folder to the `example` folder.
+
+```bash
 # Add the plugin from local path
 flutter pub add socket_audiostream --path=../
 
@@ -106,6 +110,21 @@ If you're contributing to this plugin:
 ```bash
 flutter config --enable-windows-desktop
 flutter create .
+```
+
+- Open windows/runner/flutter_window.cpp.
+- Add the following include at the top of the file, after the other #include statements:
+```
+#include "../include/socket_audiostream/socket_audiostream_plugin.h" 
+```
+Immediately after that line, add this code to manually register your plugin: RegisterPlugins(flutter_controller_->engine());
+```
+  SocketAudiostreamPluginRegisterWithRegistrar(
+      flutter_controller_->engine()->GetRegistrarForPlugin("SocketAudiostreamPlugin")
+  );
+```
+
+```bash
 flutter clean
 flutter pub get
 flutter run -d windows
