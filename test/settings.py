@@ -1,7 +1,21 @@
-STEREO = True
+import argparse
+
+# Parse command-line arguments
+parser = argparse.ArgumentParser(description="AudioStream")
+parser.add_argument('--stereo', action='store_true', help='Enable stereo mode (default: mono)')
+parser.add_argument('--host', default='127.0.0.1', help='Set host (default: 127.0.0.1)')
+parser.add_argument('--port', type=int, default=50000, help='Set port (default: 50000)')
+args = parser.parse_args()
+
+HOST = args.host
+PORT = args.port
+
+# Set STEREO based on CLI flag
+STEREO = args.stereo
+
 if STEREO:
-    # 2 channels × 16 bits × 48000 samples/sec = 1536 Kbps ≈ 192 KB/sec
-    SAMPLE_RATE = 48000
+    # 2 channels × 16 bits × 44,100 samples/sec = 1,411.2 kbps ≈ 176.4 KB/sec (44,100 Hz: CD quality)
+    SAMPLE_RATE = 44100
     CHANNELS = 2
 else:
     # 1 channel × 16 bits × 16000 samples/sec = 256 Kbps ≈ 32 KB/sec
@@ -18,7 +32,8 @@ hostapi_name:
 3=Windows WDM-KS
 '''
 def list_devices(sd, isOutput,  hostapi_name='MME'):
-    print(f"\n🔎 Listing devices for host API: {hostapi_name}")
+    print(f"\n🔎 Audio Devices [{hostapi_name}] — Channels: {'Mono' if CHANNELS == 1 else 'Stereo'}, Host: {HOST}:{PORT}")
+
     
     hostapis = sd.query_hostapis()
     hostapi_index = next((i for i, api in enumerate(hostapis) if api['name'] == hostapi_name), None)

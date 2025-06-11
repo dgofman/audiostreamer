@@ -6,7 +6,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:socket_audiostreamer/mediarecorder.dart';
 import 'package:socket_audiostreamer/mediaplayer.dart';
 
-const HOST = "localhost:9000";
+const HOST = "localhost:50000";
 
 void main() {
   runApp(MyApp());
@@ -28,9 +28,8 @@ class _MyWidgetState extends State<MyApp> {
   final _record = MediaRecorder();
   final _player = MediaPlayer();
   bool _isRecording = false;
-  bool _isCreated = false;
   bool _isListening = false;
-  double _volume = 0.5;
+  double _volume = 0.1;
   dynamic _selectedInputDevice;
   dynamic _selectedOutputDevice;
   List<dynamic> _inputDevices = [];
@@ -57,13 +56,12 @@ class _MyWidgetState extends State<MyApp> {
 
   Future<void> _handleRecordingAction() async {
     try {
-      final recording = await _record.isRecording();
-      if (recording) {
+      if (await _record.isReady) {
         await _record.stop();
         _recordStreamSubscription?.cancel();
         _recordChannel.sink.close();
         setState(() {
-          _isRecording = !recording;
+          _isRecording = false;
           status = "Stopped.";
         });
       } else {
@@ -78,7 +76,7 @@ class _MyWidgetState extends State<MyApp> {
               onDone: () => setState(() => status = "WebSocket closed"),
             );
         setState(() {
-          _isRecording = !recording;
+          _isRecording = true;
           status = "Recording...";
         });
       }
@@ -89,7 +87,7 @@ class _MyWidgetState extends State<MyApp> {
 
   Future<void> _handleListeningAction() async {
     try {
-      if (_isListening) {
+      if (await _player.isReady) {
         await _player.stop();
         await _playerStreamSubscription?.cancel();
         _playerChannel.sink.close();
@@ -107,7 +105,9 @@ class _MyWidgetState extends State<MyApp> {
         _playerStreamSubscription = _playerChannel.stream.listen(
           (data) async {
             if (data is Uint8List) {
-              await _player.addChunk(data);
+              if (!await _player.addChunk(data)) {
+                _playerStreamSubscription?.cancel();
+              }
             }
           },
           onError: (e) => setState(() => status = "WebSocket error: $e"),
@@ -115,7 +115,6 @@ class _MyWidgetState extends State<MyApp> {
         );
 
         setState(() {
-          _isCreated = true;
           _isListening = true;
           status = "Listening...";
         });
@@ -183,6 +182,8 @@ class _MyWidgetState extends State<MyApp> {
               onChanged: (val) {
                 setState(() {
                   _selectedInputDevice = _inputDevices.firstWhere((device) => device['id'] == val);
+                  status = "Selected Device - ${_selectedInputDevice['label']}";
+                  _isRecording = false;
                 });
               },
             ),
@@ -201,6 +202,8 @@ class _MyWidgetState extends State<MyApp> {
               onChanged: (val) {
                 setState(() {
                   _selectedOutputDevice = _outputDevices.firstWhere((device) => device['id'] == val);
+                  status = "Selected Device - ${_selectedOutputDevice['label']}";
+                  _isListening = false;
                 });
               },
             ),
@@ -225,10 +228,9 @@ class _MyWidgetState extends State<MyApp> {
           label: const Text("Pause"),
           onPressed: () async {
             await _record.pause();
-            final paused = await _record.isPaused();
-            setState(() {
+            setState(() async {
               _isRecording = false;
-              status = paused ? "Recording paused" : "Failed to pause recording";
+              status = await _record.isPaused ? "Recording paused" : "Failed to pause recording";
             });
           },
           style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
@@ -237,10 +239,9 @@ class _MyWidgetState extends State<MyApp> {
           label: const Text("Resume"),
           onPressed: () async {
             await _record.resume();
-            final paused = await _record.isPaused();
-            setState(() {
+            setState(() async {
               _isRecording = true;
-              status = !paused ? "Recording resumed" : "Failed to resume recording";
+              status = !await _record.isPaused? "Recording resumed" : "Failed to resume recording";
             });
           },
           style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
@@ -274,7 +275,7 @@ class _MyWidgetState extends State<MyApp> {
               value: _volume,
               min: 0.0,
               max: 1.0,
-              onChanged: _isCreated
+              onChanged: _isListening
                   ? (val) async {
                       setState(() => _volume = val);
                       await _player.volume(_volume);
@@ -293,7 +294,6 @@ class _MyWidgetState extends State<MyApp> {
           onPressed: () async {
             await _player.dispose();
             setState(() {
-              _isCreated = false;
               _isListening = false;
               status = "Player disposed";
             });

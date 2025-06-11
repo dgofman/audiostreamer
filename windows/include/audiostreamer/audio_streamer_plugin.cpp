@@ -3,8 +3,12 @@
 #include "recording/mediarecorder.h"          // recording::
 #include "playback/mediaplayer.h"             // playback::
 
+#include "utils.h" // SAMPLE_RATE and CHANNELS
+
 void AudioStreamerPluginRegisterWithRegistrar(FlutterDesktopPluginRegistrarRef prr)
 {
+    std::wcout << L"Channels: " << CHANNELS << ", SampleRate: " << SAMPLE_RATE << std::endl;
+
     auto registrar = flutter::PluginRegistrarManager::GetInstance()
                          ->GetRegistrar<flutter::PluginRegistrarWindows>(prr);
     recording::MediaRecorder::RegisterWithRegistrar(registrar);

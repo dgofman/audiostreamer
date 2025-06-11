@@ -26,7 +26,7 @@ namespace recording
 		HRESULT Resume();
 		HRESULT Stop();
 		bool IsPaused();
-		bool IsRecording();
+		bool IsReady();
 		HRESULT Dispose();
 
 		// IUnknown methods

@@ -5,9 +5,9 @@ import sounddevice as sd
 from aiohttp import ClientSession
 
 sys.path.append('..')
-from settings import SAMPLE_RATE, CHANNELS, CHUNK, list_devices
+from settings import HOST, PORT, SAMPLE_RATE, CHANNELS, CHUNK, list_devices
 
-WS_URL = "http://127.0.0.1:9000/recording"
+WS_URL = f"http://{HOST}:{PORT}/recording"
 
 async def main():
     loop = asyncio.get_running_loop()

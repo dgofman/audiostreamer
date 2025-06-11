@@ -24,43 +24,44 @@ class MediaPlayer extends PlatformInterface {
   }
 
   Future<bool> hasPermission() async {
-    return await _create(() => _instance.hasPermission(_playerId));
+    return _create(() => _instance.hasPermission(_playerId));
   }
 
   Future<void> start(String? deviceId) async {
-    return await _create(() => _instance.start(_playerId, deviceId));
+    _create(() => _instance.start(_playerId, deviceId));
   }
 
   Future<String?> stop() async {
-    return await _create(() => _instance.stop(_playerId));
+    return _create(() => _instance.stop(_playerId));
   }
 
-  Future<void> addChunk(Uint8List data) async {
+  Future<bool> addChunk(Uint8List data) async {
     if (_created) {
       await _instance.addChunk(_playerId, data);
     }
+    return _created;
   }
 
   Future<void> volume(double value) async {
-    return await _create(() => _instance.volume(_playerId, value));
+    _create(() => _instance.volume(_playerId, value));
   }
 
-  Future<bool> isCreated() async {
-    return await _create(() => _instance.isCreated(_playerId));
+  Future<bool> get isCreated async {
+    return _create(() => _instance.isCreated(_playerId));
   }
 
-  Future<bool> isListening() async {
-    return await _create(() => _instance.isListening(_playerId));
+  Future<bool> get isReady async {
+    return _create(() => _instance.isReady(_playerId));
   }
 
   Future<void> dispose() async {
     if (_created) {
-      _instance.dispose(_playerId);
+      _created = false;
+      await _instance.dispose(_playerId);
     }
-    _created = false;
   }
 
   Future<List<dynamic>> listDevices() async {
-    return await _create(() => _instance.listDevices(_playerId));
+    return _create(() => _instance.listDevices(_playerId));
   }
 }

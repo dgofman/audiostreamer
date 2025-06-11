@@ -51,11 +51,15 @@ flutter pub get
 import 'package:audiostreamer/mediarecorder.dart';
 
 final recorder = MediaRecorder();
+await record.listDevices()
+await record.isReady;
+...
 
-await recorder.start();
-await recorder.pause();
-await recorder.resume();
-await recorder.stop();
+final player = MediaPlayer();
+await player.listDevices()
+await player.isReady;
+...
+
 ```
 
 ## Testing the Plugin

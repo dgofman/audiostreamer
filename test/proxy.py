@@ -1,5 +1,9 @@
 # proxy_server.py
+import sys
 from aiohttp import web, WSMsgType
+
+sys.path.append('..')
+from settings import PORT
 
 routes = web.RouteTableDef()
 clients = set()
@@ -46,4 +50,4 @@ app = web.Application()
 app.add_routes(routes)
 
 if __name__ == "__main__":
-    web.run_app(app, port=9000)
+    web.run_app(app, port=PORT)

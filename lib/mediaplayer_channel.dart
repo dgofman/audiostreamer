@@ -11,11 +11,10 @@ class MediaPlayerChannel {
   }
 
   Future<bool> hasPermission(String playerId) async {
-    final result = await _methodChannel.invokeMethod<bool>(
+    return (await _methodChannel.invokeMethod<bool>(
       'hasPermission',
       {'playerId': playerId},
-    );
-    return result ?? false;
+    ) ?? false);
   }
 
   Future<void> start(String playerId, String? deviceId) async {
@@ -23,12 +22,10 @@ class MediaPlayerChannel {
   }
 
   Future<String?> stop(String playerId) async {
-    final outputPath = await _methodChannel.invokeMethod(
+    return await _methodChannel.invokeMethod(
       'stop',
       {'playerId': playerId},
     );
-
-    return outputPath;
   }
 
   Future<void> addChunk(String playerId, Uint8List data) async {
@@ -43,20 +40,17 @@ class MediaPlayerChannel {
   }
 
   Future<bool> isCreated(String playerId) async {
-    final result = await _methodChannel.invokeMethod<bool>(
+    return (await _methodChannel.invokeMethod<bool>(
       'isCreated',
       {'playerId': playerId},
-    );
-
-    return result ?? false;
+    ) ?? false);
   }
 
-  Future<bool> isListening(String playerId) async {
-    final result = await _methodChannel.invokeMethod<bool>(
-      'isListening',
+  Future<bool> isReady(String playerId) async {
+    return (await _methodChannel.invokeMethod<bool>(
+      'isReady',
       {'playerId': playerId},
-    );
-    return result ?? false;
+    ) ?? false);
   }
 
   Future<void> dispose(String playerId) async {
@@ -70,7 +64,6 @@ class MediaPlayerChannel {
     return await _methodChannel.invokeMethod<dynamic>(
           'listDevices',
           {'playerId': playerId},
-        ) ??
-        [];
+        ) ?? [];
   }
 }

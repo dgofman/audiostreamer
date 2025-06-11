@@ -12,7 +12,7 @@ constexpr uint32_t kStop = HashMethodName("stop");
 constexpr uint32_t kPause = HashMethodName("pause");
 constexpr uint32_t kResume = HashMethodName("resume");
 constexpr uint32_t kIsPaused = HashMethodName("isPaused");
-constexpr uint32_t kIsRecording = HashMethodName("isRecording");
+constexpr uint32_t kIsReady = HashMethodName("isReady");
 constexpr uint32_t kDispose = HashMethodName("dispose");
 constexpr uint32_t kListDevices = HashMethodName("listDevices");
 
@@ -160,8 +160,8 @@ namespace recording
 			result->Success(EncodableValue(recorder->IsPaused()));
 			return;
 
-		case kIsRecording:
-			result->Success(EncodableValue(recorder->IsRecording()));
+		case kIsReady:
+			result->Success(EncodableValue(recorder->IsReady()));
 			return;
 
 		case kDispose:

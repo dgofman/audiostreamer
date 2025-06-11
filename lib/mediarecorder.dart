@@ -24,31 +24,31 @@ class MediaRecorder extends PlatformInterface {
   }
 
   Future<bool> hasPermission() async {
-    return await _create(() => _instance.hasPermission(_recorderId));
+    return _create(() => _instance.hasPermission(_recorderId));
   }
 
   Future<void> start(String? deviceId) async {
-    await _create(() => _instance.start(_recorderId, deviceId));
+    _create(() => _instance.start(_recorderId, deviceId));
   }
 
   Future<String?> stop() async {
-    return await _create(() => _instance.stop(_recorderId));
+    return _create(() => _instance.stop(_recorderId));
   }
 
   Future<void> pause() async {
-    return await _create(() => _instance.pause(_recorderId));
+    _create(() => _instance.pause(_recorderId));
   }
 
   Future<void> resume() async {
-    return await _create(() => _instance.resume(_recorderId));
+    _create(() => _instance.resume(_recorderId));
   }
 
-  Future<bool> isPaused() async {
-    return await _create(() => _instance.isPaused(_recorderId));
+  Future<bool> get isPaused async {
+    return _create(() => _instance.isPaused(_recorderId));
   }
 
-  Future<bool> isRecording() async {
-    return await _create(() => _instance.isRecording(_recorderId));
+  Future<bool> get isReady async {
+    return _create(() => _instance.isReady(_recorderId));
   }
 
   Stream<Uint8List> get stream {
@@ -57,12 +57,12 @@ class MediaRecorder extends PlatformInterface {
 
   Future<void> dispose() async {
     if (_created) {
-      _instance.dispose(_recorderId);
+      _created = false;
+      await _instance.dispose(_recorderId);
     }
-    _created = false;
   }
 
   Future<List<dynamic>> listDevices() async {
-    return await _create(() => _instance.listDevices(_recorderId));
+    return _create(() => _instance.listDevices(_recorderId));
   }
 }

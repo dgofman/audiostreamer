@@ -11,6 +11,16 @@
 
 using Microsoft::WRL::ComPtr; // Enables ComPtr smart pointer usage
 
+#ifdef STEREO
+    // 2 channels × 16 bits × 44,100 samples/sec = 1,411.2 kbps ≈ 176.4 KB/sec (44,100 Hz: CD quality)
+    #define SAMPLE_RATE 44100
+    #define CHANNELS 2
+#else
+    // 1 channel × 16 bits × 16000 samples/sec = 256 Kbps ≈ 32 KB/sec (16,000 Hz: phone-quality voice)
+    #define SAMPLE_RATE 16000
+    #define CHANNELS 1
+#endif
+
 template <class T>
 inline void SafeRelease(T *&pT)
 {

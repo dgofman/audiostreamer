@@ -24,7 +24,7 @@ namespace playback
 		HRESULT SetVolume(float volume);
 		HRESULT AddChunk(const std::vector<uint8_t> &data);
 		bool IsCreated();
-		bool IsListening();
+		bool IsReady();
 		HRESULT Dispose();
 		void FeedAudioData(const std::vector<uint8_t> &audioData);
 
@@ -36,7 +36,7 @@ namespace playback
 		HANDLE m_audioSamplesReadyEvent;
 		std::thread m_playbackThread;
 		bool m_shutdown = false;
-		bool m_listening = false;
+		bool m_isready = false;
 
 		// WASAPI interfaces
 		IAudioClient *m_audioClient = nullptr;

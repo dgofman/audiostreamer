@@ -314,7 +314,7 @@ namespace recording
 		return m_paused;
 	}
 
-	bool Recorder::IsRecording()
+	bool Recorder::IsReady()
 	{
 		return m_imfStarted;
 	}

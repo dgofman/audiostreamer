@@ -50,6 +50,11 @@ macos/
 web/
 windows/flutter/
 windows/runner/
+windows/CMakeFiles/
+windows/CMakeCache.txt
+windows/cmake_install.cmake
+windows/build.ninja
+windows/.vscode/settings.json
 
 pubspec.lock
 analysis_options.yaml

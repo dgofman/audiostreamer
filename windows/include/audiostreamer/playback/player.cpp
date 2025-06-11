@@ -16,7 +16,7 @@ namespace playback
 
 	Player::Player() : m_audioClient(nullptr),
 					   m_renderClient(nullptr),
-					   m_listening(false),
+					   m_isready(false),
 					   m_shutdown(false)
 	{
 		m_audioSamplesReadyEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -163,7 +163,7 @@ namespace playback
 		if (SUCCEEDED(hr))
 		{
 			hr = m_audioClient->Start();
-			m_listening = true;
+			m_isready = true;
 		}
 
 		// Cleanup
@@ -204,7 +204,7 @@ namespace playback
 
 	HRESULT Player::AddChunk(const std::vector<uint8_t> &data)
 	{
-		if (!IsCreated() || !IsListening())
+		if (!m_isready)
 			return E_FAIL;
 		{
 			std::lock_guard<std::mutex> lock(m_queueMutex);
@@ -220,9 +220,9 @@ namespace playback
 		return m_audioClient != nullptr;
 	}
 
-	bool Player::IsListening()
+	bool Player::IsReady()
 	{
-		return m_listening;
+		return m_isready;
 	}
 
 	HRESULT Player::EndPlayback()
@@ -238,7 +238,7 @@ namespace playback
 		if (m_audioClient)
 		{
 			m_audioClient->Stop();
-			m_listening = false;
+			m_isready = false;
 		}
 
 		{

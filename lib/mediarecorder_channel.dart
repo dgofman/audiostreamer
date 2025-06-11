@@ -11,11 +11,10 @@ class MediaRecorderChannel {
   }
 
   Future<bool> hasPermission(String recorderId) async {
-    final result = await _methodChannel.invokeMethod<bool>(
+    return (await _methodChannel.invokeMethod<bool>(
       'hasPermission',
       {'recorderId': recorderId},
-    );
-    return result ?? false;
+    ) ?? false);
   }
 
   Future<void> start(String recorderId, String? deviceId) async {
@@ -23,12 +22,10 @@ class MediaRecorderChannel {
   }
 
   Future<String?> stop(String recorderId) async {
-    final outputPath = await _methodChannel.invokeMethod(
+    return await _methodChannel.invokeMethod(
       'stop',
       {'recorderId': recorderId},
     );
-
-    return outputPath;
   }
 
   Future<void> pause(String recorderId) {
@@ -46,20 +43,17 @@ class MediaRecorderChannel {
   }
 
   Future<bool> isPaused(String recorderId) async {
-    final result = await _methodChannel.invokeMethod<bool>(
+    return (await _methodChannel.invokeMethod<bool>(
       'isPaused',
       {'recorderId': recorderId},
-    );
-
-    return result ?? false;
+    ) ?? false);
   }
 
-  Future<bool> isRecording(String recorderId) async {
-    final result = await _methodChannel.invokeMethod<bool>(
-      'isRecording',
+  Future<bool> isReady(String recorderId) async {
+    return (await _methodChannel.invokeMethod<bool>(
+      'isReady',
       {'recorderId': recorderId},
-    );
-    return result ?? false;
+    ) ?? false);
   }
 
   Future<void> dispose(String recorderId) async {
@@ -80,7 +74,6 @@ class MediaRecorderChannel {
     return await _methodChannel.invokeMethod<dynamic>(
           'listDevices',
           {'recorderId': recorderId},
-        ) ??
-        [];
+        ) ?? [];
   }
 }

@@ -7,10 +7,10 @@ from aiohttp import ClientSession, WSMsgType
 from threading import Lock
 
 sys.path.append('..')
-from settings import SAMPLE_RATE, CHANNELS, CHUNK, list_devices
+from settings import HOST, PORT, SAMPLE_RATE, CHANNELS, CHUNK, list_devices
 
 BYTE_DEPTH = 2
-WS_URL = "http://127.0.0.1:9000/listening"
+WS_URL = f"http://{HOST}:{PORT}/listening"
 
 class AudioBuffer:
     def __init__(self):

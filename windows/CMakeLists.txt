@@ -13,6 +13,12 @@ cmake_policy(VERSION 3.14...3.25)
 # Use Unicode for all projects.
 add_definitions(-DUNICODE -D_UNICODE)
 
+# Pass -DSTEREO to compiler if environment variable is set
+string(STRIP "$ENV{STEREO}" STEREO_VALUE)
+if(STEREO_VALUE STREQUAL "1")
+  add_definitions(-DSTEREO)
+endif()
+
 # Compilation settings that should be applied to most targets.
 #
 # Be cautious about adding new options here, as plugins use this function by

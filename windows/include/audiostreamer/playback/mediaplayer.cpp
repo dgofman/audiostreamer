@@ -10,7 +10,7 @@ constexpr uint32_t kStop = HashMethodName("stop");
 constexpr uint32_t kAddChunk = HashMethodName("addChunk");
 constexpr uint32_t kVolume = HashMethodName("volume");
 constexpr uint32_t kIsCreated = HashMethodName("isCreated");
-constexpr uint32_t kIsListening = HashMethodName("isListening");
+constexpr uint32_t kIsReady = HashMethodName("isReady");
 constexpr uint32_t kDispose = HashMethodName("dispose");
 constexpr uint32_t kListDevices = HashMethodName("listDevices");
 
@@ -179,8 +179,8 @@ namespace playback
 			result->Success(EncodableValue(player->IsCreated()));
 			return;
 
-		case kIsListening:
-			result->Success(EncodableValue(player->IsListening()));
+		case kIsReady:
+			result->Success(EncodableValue(player->IsReady()));
 			return;
 
 		case kDispose:
