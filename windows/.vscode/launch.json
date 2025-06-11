@@ -2,10 +2,10 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug AudioStreamer Plugin",
+      "name": "Debug AudioStream Plugin",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/../build/windows/x64/runner/Debug/audiostreamer.exe",
+      "program": "${workspaceFolder}/../build/windows/x64/runner/Debug/socket_audiostream.exe",
       "args": [],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}/..",

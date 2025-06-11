@@ -43,6 +43,7 @@ app.*.map.json
 .gitignore
 .metadata
 
+example/
 android/
 ios/
 linux/

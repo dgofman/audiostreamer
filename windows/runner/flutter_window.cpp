@@ -3,7 +3,7 @@
 #include <optional>
 
 #include <flutter/generated_plugin_registrant.h>
-#include "../include/audiostreamer/audio_streamer_plugin.h"
+#include "../include/socket_audiostream/socket_audiostream_plugin.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
@@ -26,8 +26,8 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
-  AudioStreamerPluginRegisterWithRegistrar(
-      flutter_controller_->engine()->GetRegistrarForPlugin("AudioStreamerPlugin")
+  SocketAudiostreamPluginRegisterWithRegistrar(
+      flutter_controller_->engine()->GetRegistrarForPlugin("SocketAudiostreamPlugin")
   );
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 

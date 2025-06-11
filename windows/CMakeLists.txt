@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.14)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
-set(BINARY_NAME "audiostreamer")
+set(BINARY_NAME "socket_audiostream")
 project(${BINARY_NAME} LANGUAGES CXX)
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
@@ -75,11 +75,11 @@ else()
 
   # Define the plugin target
   add_library(${PLUGIN_NAME} SHARED
-    "include/audiostreamer/audio_streamer_plugin.cpp"
-    "include/audiostreamer/recording/mediarecorder.cpp"
-    "include/audiostreamer/recording/recorder.cpp"
-    "include/audiostreamer/playback/mediaplayer.cpp"
-    "include/audiostreamer/playback/player.cpp"
+    "include/socket_audiostream/socket_audiostream_plugin.cpp"
+    "include/socket_audiostream/recording/mediarecorder.cpp"
+    "include/socket_audiostream/recording/recorder.cpp"
+    "include/socket_audiostream/playback/mediaplayer.cpp"
+    "include/socket_audiostream/playback/player.cpp"
   )
 
   # Add dependency libraries and include directories.

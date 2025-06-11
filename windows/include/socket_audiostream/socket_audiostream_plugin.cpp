@@ -1,11 +1,11 @@
 #include <flutter/plugin_registrar_windows.h> // flutter::
-#include "audio_streamer_plugin.h"            // AudioStreamerPlugin
+#include "socket_audiostream_plugin.h"            // AudioStreamerPlugin
 #include "recording/mediarecorder.h"          // recording::
 #include "playback/mediaplayer.h"             // playback::
 
 #include "utils.h" // SAMPLE_RATE and CHANNELS
 
-void AudioStreamerPluginRegisterWithRegistrar(FlutterDesktopPluginRegistrarRef prr)
+void SocketAudiostreamPluginRegisterWithRegistrar(FlutterDesktopPluginRegistrarRef prr)
 {
     std::wcout << L"Channels: " << CHANNELS << ", SampleRate: " << SAMPLE_RATE << std::endl;
 

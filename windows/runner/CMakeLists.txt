@@ -15,11 +15,11 @@ add_executable(${BINARY_NAME} WIN32
   "utils.cpp"
   "win32_window.cpp"
   "../flutter/generated_plugin_registrant.cc"
-  "../include/audiostreamer/audio_streamer_plugin.cpp"
-  "../include/audiostreamer/recording/mediarecorder.cpp"
-  "../include/audiostreamer/recording/recorder.cpp"
-  "../include/audiostreamer/playback/mediaplayer.cpp"
-  "../include/audiostreamer/playback/player.cpp"
+  "../include/socket_audiostream/socket_audiostream_plugin.cpp"
+  "../include/socket_audiostream/recording/mediarecorder.cpp"
+  "../include/socket_audiostream/recording/recorder.cpp"
+  "../include/socket_audiostream/playback/mediaplayer.cpp"
+  "../include/socket_audiostream/playback/player.cpp"
 )
 
 # Add preprocessor definitions for the build version.

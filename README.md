@@ -1,6 +1,6 @@
-# AudioStreamer
+# Socket AudioStream
 
-**AudioStreamer** is a Flutter plugin for **Windows** that enables **low-latency audio recording** using the native Media Foundation API.
+**Socket AudioStream** is a Flutter plugin for **Windows** that enables **low-latency audio recording** using the native Media Foundation API.
 
 > 🎙️ **Recording via WebSocket and microphone.**  
 > 🔊 **Playback via WebSocket and speakers.**
@@ -35,8 +35,8 @@ Add the plugin to your Flutter project:
 
 ```yaml
 dependencies:
-  audiostreamer:
-    path: ../audiostreamer
+  socket_audiostream:
+    path: ../socket_audiostream
 ```
 
 Then run:
@@ -48,7 +48,8 @@ flutter pub get
 ## Usage
 
 ```dart
-import 'package:audiostreamer/mediarecorder.dart';
+import 'package:socket_audiostream/mediarecorder.dart';
+import 'package:socket_audiostream/mediaplayer.dart';
 
 final recorder = MediaRecorder();
 await record.listDevices()
@@ -72,7 +73,7 @@ flutter create example
 cd example
 
 # Add the plugin from local path
-flutter pub add audiostreamer --path=../
+flutter pub add socket_audiostream --path=../
 
 # Optional: Add WebSocket and dev dependencies
 flutter pub add web_socket_channel
@@ -95,7 +96,7 @@ If you're contributing to this plugin:
 #  plugin:
 #    platforms:
 #      windows:
-#        pluginClass: AudioStreamerPlugin
+#        pluginClass: Socket AudioStreamPlugin
 ```
 
 -  Delete the existing `example` folder if needed.
