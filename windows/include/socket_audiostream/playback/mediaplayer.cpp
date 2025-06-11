@@ -1,3 +1,5 @@
+#define NOMINMAX
+#include <algorithm>					   // std::min
 #include <flutter/method_channel.h>		   // flutter::MethodChannel
 #include <flutter/standard_method_codec.h> // flutter::StandardMethodCodec
 

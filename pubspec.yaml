@@ -1,6 +1,6 @@
 name: socket_audiostream
 description: A Windows Flutter plugin for audio recording using Media Foundation.
-version: 0.1.1
+version: 0.1.2
 homepage: https://github.com/dgofman/audiostreamer
 repository: https://github.com/dgofman/audiostreamer
 
