@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include <algorithm>					   // std::min
+#include <optional>						   // std::optional<LRESULT>
 #include <flutter/method_channel.h>		   // flutter::MethodChannel
 #include <flutter/standard_method_codec.h> // flutter::StandardMethodCodec
 
@@ -63,7 +64,7 @@ namespace playback
 
 		// Register window proc delegate
 		window_proc_delegate = registrar->RegisterTopLevelWindowProcDelegate(
-			[plugin_ptr = plugin.get()](HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
+			[plugin_ptr = plugin.get()](HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) -> std::optional<LRESULT>
 			{
 				if (message == WM_SETFONT)
 				{
@@ -71,7 +72,7 @@ namespace playback
 					delegate_callbacks.pop_front();
 					return 0;
 				}
-				return NULL;
+				return std::nullopt;  // pass to default handler
 			});
 	}
 

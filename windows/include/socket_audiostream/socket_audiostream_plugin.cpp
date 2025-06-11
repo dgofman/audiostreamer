@@ -7,7 +7,7 @@
 
 void SocketAudiostreamPluginRegisterWithRegistrar(FlutterDesktopPluginRegistrarRef prr)
 {
-    std::wcout << L"Channels: " << CHANNELS << ", SampleRate: " << SAMPLE_RATE << std::endl;
+    std::wcout << L"SocketAudiostreamPlugin - Channels: " << CHANNELS << ", SampleRate: " << SAMPLE_RATE << std::endl;
 
     auto registrar = flutter::PluginRegistrarManager::GetInstance()
                          ->GetRegistrar<flutter::PluginRegistrarWindows>(prr);

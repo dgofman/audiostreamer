@@ -6,3 +6,5 @@
 - Renamed the package name
 ## [0.1.3] - 2025-06-11
 - Deleted windows/runner/flutter_window.cpp
+## [0.1.4] - 2025-06-11
+- Fixed a window handler
