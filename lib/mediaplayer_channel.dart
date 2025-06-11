@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 
 class MediaPlayerChannel {
-  final _methodChannel = const MethodChannel('com.softigent.audiostreamer.MediaPlayer');
+  final _methodChannel = const MethodChannel('com.softigent.audiostream.MediaPlayer');
 
   Future<void> create(String playerId) {
     return _methodChannel.invokeMethod<void>(

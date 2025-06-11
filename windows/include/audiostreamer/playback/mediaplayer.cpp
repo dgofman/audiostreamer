@@ -42,7 +42,7 @@ namespace playback
 		binary_messenger = registrar->messenger();
 
 		auto methodChannel = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
-			binary_messenger, "com.softigent.audiostreamer.MediaPlayer",
+			binary_messenger, "com.softigent.audiostream.MediaPlayer",
 			&flutter::StandardMethodCodec::GetInstance());
 
 		auto plugin = std::make_unique<MediaPlayer>(registrar);

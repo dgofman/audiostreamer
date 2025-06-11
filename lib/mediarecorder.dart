@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
-import 'package:socket_audiostreamer/mediarecorder_channel.dart';
+import 'package:socket_audiostream/mediarecorder_channel.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 class MediaRecorder extends PlatformInterface {

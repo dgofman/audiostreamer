@@ -44,7 +44,7 @@ namespace recording
 		binary_messenger = registrar->messenger();
 
 		auto methodChannel = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
-			binary_messenger, "com.softigent.audiostreamer.MediaRecorder",
+			binary_messenger, "com.softigent.audiostream.MediaRecorder",
 			&flutter::StandardMethodCodec::GetInstance());
 
 		auto plugin = std::make_unique<MediaRecorder>(registrar);
@@ -209,7 +209,7 @@ namespace recording
 		std::unique_ptr<StreamHandler<EncodableValue>> pRecordEventHandler{static_cast<StreamHandler<EncodableValue> *>(recordEventHandler)};
 
 		auto recordEventChannel = std::make_unique<EventChannel<EncodableValue>>(
-			binary_messenger, "com.softigent.audiostreamer/recordEvent/" + recorderId,
+			binary_messenger, "com.softigent.audiostream/recordEvent/" + recorderId,
 			&StandardMethodCodec::GetInstance());
 		recordEventChannel->SetStreamHandler(std::move(pRecordEventHandler));
 

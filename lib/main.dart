@@ -3,8 +3,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:socket_audiostreamer/mediarecorder.dart';
-import 'package:socket_audiostreamer/mediaplayer.dart';
+import 'package:socket_audiostream/mediarecorder.dart';
+import 'package:socket_audiostream/mediaplayer.dart';
 
 const HOST = "localhost:50000";
 
@@ -228,9 +228,10 @@ class _MyWidgetState extends State<MyApp> {
           label: const Text("Pause"),
           onPressed: () async {
             await _record.pause();
-            setState(() async {
+            final isPaused = await _record.isPaused;
+            setState(() {
               _isRecording = false;
-              status = await _record.isPaused ? "Recording paused" : "Failed to pause recording";
+              status = isPaused ? "Recording paused" : "Failed to pause recording";
             });
           },
           style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
@@ -239,9 +240,10 @@ class _MyWidgetState extends State<MyApp> {
           label: const Text("Resume"),
           onPressed: () async {
             await _record.resume();
-            setState(() async {
+            final isPaused = await _record.isPaused;
+            setState(() {
               _isRecording = true;
-              status = !await _record.isPaused? "Recording resumed" : "Failed to resume recording";
+              status = !isPaused ? "Recording resumed" : "Failed to resume recording";
             });
           },
           style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
@@ -249,7 +251,7 @@ class _MyWidgetState extends State<MyApp> {
         ElevatedButton.icon(
           label: const Text("Dispose"),
           onPressed: () async {
-            await _record.dispose();
+            disposeRecord();
             setState(() {
               _isRecording = false;
               status = "Recorder disposed";
@@ -292,7 +294,7 @@ class _MyWidgetState extends State<MyApp> {
         ElevatedButton.icon(
           label: const Text("Dispose"),
           onPressed: () async {
-            await _player.dispose();
+            disposePlayer();
             setState(() {
               _isListening = false;
               status = "Player disposed";
@@ -304,15 +306,22 @@ class _MyWidgetState extends State<MyApp> {
     );
   }
 
-  @override
-  void dispose() {
-    _record.dispose();
+  void disposeRecord() async {
+    await _record.dispose();
     _recordChannel.sink.close();
     _recordStreamSubscription?.cancel();
+  }
 
-    _player.dispose();
+  void disposePlayer() async {
+    await _player.dispose();
     _playerChannel.sink.close();
     _playerStreamSubscription?.cancel();
+  }
+
+  @override
+  void dispose() {
+    disposeRecord();
+    disposePlayer();
     super.dispose();
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 
 class MediaRecorderChannel {
-  final _methodChannel = const MethodChannel('com.softigent.audiostreamer.MediaRecorder');
+  final _methodChannel = const MethodChannel('com.softigent.audiostream.MediaRecorder');
 
   Future<void> create(String recorderId) {
     return _methodChannel.invokeMethod<void>(
@@ -65,7 +65,7 @@ class MediaRecorderChannel {
 
   Stream<Uint8List> stream(String recorderId) {
     final recordEventChannel = EventChannel(
-      'com.softigent.audiostreamer/recordEvent/$recorderId',
+      'com.softigent.audiostream/recordEvent/$recorderId',
     );
     return recordEventChannel.receiveBroadcastStream().map<Uint8List>((data) => data);
   }
