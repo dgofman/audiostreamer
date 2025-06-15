@@ -1,5 +1,3 @@
-
-#define NOMINMAX
 #include <algorithm>					   // std::min
 #include "player.h"
 #include "mediaplayer.h"

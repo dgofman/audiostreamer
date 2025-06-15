@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:developer';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:socket_audiostream/mediarecorder.dart';
 import 'package:socket_audiostream/mediaplayer.dart';
 
-const HOST = "localhost:50000";
+const BASE_URL = 'ws://localhost:9000/ws'; // see test/utils.py
 
 void main() {
   runApp(MyApp());
@@ -19,11 +22,19 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyWidgetState extends State<MyApp> {
-  late WebSocketChannel _recordChannel;
-  late WebSocketChannel _playerChannel;
+  final int _roomId;
+  final String _clientId;
+  final Map<String, dynamic> _headers;
 
+  _MyWidgetState({int? roomId, Map<String, dynamic>? headers, String? clientId})
+      : _roomId = roomId ?? 0,
+        _headers = headers ?? {},
+        _clientId = clientId ?? DateTime.now().millisecondsSinceEpoch.toString();
+
+  late WebSocketChannel? _recordingSocket;
+  late WebSocketChannel? _listeningSocket;
   StreamSubscription? _recordStreamSubscription;
-  StreamSubscription? _playerStreamSubscription;
+  StreamSubscription? _listeningStreamSubscription;
 
   final _record = MediaRecorder();
   final _player = MediaPlayer();
@@ -34,7 +45,7 @@ class _MyWidgetState extends State<MyApp> {
   dynamic _selectedOutputDevice;
   List<dynamic> _inputDevices = [];
   List<dynamic> _outputDevices = [];
-  String status = "Initializing...";
+  String status = 'Initializing...';
 
   @override
   void initState() {
@@ -48,79 +59,137 @@ class _MyWidgetState extends State<MyApp> {
       _outputDevices = await _player.listDevices();
       _selectedInputDevice = _inputDevices.isNotEmpty ? _inputDevices[0] : null;
       _selectedOutputDevice = _outputDevices.isNotEmpty ? _outputDevices[0] : null;
-      setState(() => status = "Ready");
+      setState(() => status = 'Ready');
     } catch (e) {
-      setState(() => status = "Initialization failed: $e");
+      setState(() => status = 'Initialization failed: $e');
     }
+  }
+
+  Future<WebSocketChannel?> _openWebSocket(String role, int roomId) async {
+    final websocketCompleter = Completer();
+    Uri socketURL = Uri.parse(BASE_URL);
+    try {
+      socketURL = socketURL.replace(queryParameters: {
+        'role': role,
+        'roomId': '${roomId}',
+        'clientId': '${_clientId}'
+      });
+      setState(() {
+        status = 'WebSocket try connecting to $socketURL';
+      });
+      return IOWebSocketChannel(await WebSocket.connect(socketURL.toString(), headers: _headers));
+    } catch (e) {
+      setState(() {
+        status = 'WebSocket $socketURL\nError: ${e is SocketException ? e.message : e}';
+      });
+      if (!websocketCompleter.isCompleted) {
+        websocketCompleter.completeError(e);
+      }
+    } finally {
+      if (!websocketCompleter.isCompleted) websocketCompleter.complete();
+    }
+    return null;
+  }
+
+  Future<void> stopRecording() async {
+    await _record.stop();
+    _recordStreamSubscription?.cancel();
+    _recordStreamSubscription = null;
+    setState(() {
+      _isRecording = false;
+      status = 'Stopped recording';
+    });
+    log('AudioStream Recording socket closed');
   }
 
   Future<void> _handleRecordingAction() async {
     try {
       if (await _record.isReady) {
-        await _record.stop();
-        _recordStreamSubscription?.cancel();
-        _recordChannel.sink.close();
-        setState(() {
-          _isRecording = false;
-          status = "Stopped.";
-        });
+        await stopRecording();
       } else {
-        _recordChannel = WebSocketChannel.connect(Uri.parse('ws://$HOST/recording'));
+        _recordingSocket = await _openWebSocket('recording', _roomId);
+        if (_recordingSocket == null) {
+          return;
+        }
+
         dynamic device = _selectedInputDevice;
-        print(device?["label"]);
-        await _record.start(device?["id"]);
+        print(device?['label']);
+        await _record.start(device?['id']);
+
+        _recordingSocket!.stream.listen((_) {}, onDone: () => stopRecording());
 
         _recordStreamSubscription = _record.stream.listen(
-              (data) => _recordChannel.sink.add(data),
-              onError: (e) => setState(() => status = "WebSocket error: $e"),
-              onDone: () => setState(() => status = "WebSocket closed"),
-            );
+          (data) => _recordingSocket?.sink.add(data),
+          onError: (e, st) => log('AudioStream Recording socket error', error: e, stackTrace: st),
+          onDone: () => stopRecording()
+        );
+
         setState(() {
           _isRecording = true;
-          status = "Recording...";
+          status = 'Recording...';
         });
       }
     } catch (e) {
-      setState(() => status = "Error: ${e.toString()}");
+      setState(() => status = 'Error: ${e.toString()}');
     }
+  }
+
+  Future<void> stopListening() async {
+    await _player.stop();
+    _listeningStreamSubscription?.cancel();
+    _listeningStreamSubscription = null;
+    setState(() {
+      _isListening = false;
+      status = 'Stopped listening';
+    });
+    log('AudioStream Listening socket closed');
   }
 
   Future<void> _handleListeningAction() async {
     try {
       if (await _player.isReady) {
-        await _player.stop();
-        await _playerStreamSubscription?.cancel();
-        _playerChannel.sink.close();
-        setState(() {
-          _isListening = false;
-          status = "Stopped listening";
-        });
+        await stopListening();
       } else {
-        _playerChannel = WebSocketChannel.connect(Uri.parse('ws://$HOST/listening'));
+        _listeningSocket = await _openWebSocket('listening', _roomId);
+        if (_recordingSocket == null) {
+          return;
+        }
+
         dynamic device = _selectedOutputDevice;
-        print(device?["label"]);
-        await _player.start(device?["id"]);
+        print(device?['label']);
+        await _player.start(device?['id']);
 
         // Listen to WebSocket and buffer
-        _playerStreamSubscription = _playerChannel.stream.listen(
-          (data) async {
-            if (data is Uint8List) {
-              if (!await _player.addChunk(data)) {
-                _playerStreamSubscription?.cancel();
+        _listeningStreamSubscription = _listeningSocket!.stream.listen((event) async {
+            try {
+              Uint8List chunk;
+              if (event is List<int>) {
+                chunk = Uint8List.fromList(event);
+              } else if (event is Uint8List) {
+                chunk = event;
+              } else {
+                log('Unsupported data type from listening socket');
+                return;
               }
+              if (_listeningStreamSubscription != null) {
+                final success = await _player.addChunk(chunk);
+                if (!success) await stopListening();
+              }
+            } catch (e, st) {
+              log('AudioStream Listening error', error: e, stackTrace: st);
             }
           },
-          onError: (e) => setState(() => status = "WebSocket error: $e"),
-          onDone: () => setState(() => status = "WebSocket closed"),
+          onError: (e, st) => log('AudioStream Listening socket error', error: e, stackTrace: st),
+          onDone: () => stopListening()
         );
 
         setState(() {
           _isListening = true;
-          status = "Listening...";
+          status = 'Listening...';
         });
       }
     } catch (e) {
-      setState(() => status = "Error: ${e.toString()}");
+      setState(() => status = 'Error: ${e.toString()}');
     }
   }
 
@@ -128,7 +197,7 @@ class _MyWidgetState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        appBar: AppBar(title: const Text("Audio Stream Controller")),
+        appBar: AppBar(title: const Text('Audio Stream Controller')),
         body: SingleChildScrollView(
           padding: EdgeInsets.all(16),
           child: Column(
@@ -153,7 +222,7 @@ class _MyWidgetState extends State<MyApp> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          "Status: $status",
+          'Status: $status',
           textAlign: TextAlign.center,
           style: const TextStyle(fontWeight: FontWeight.bold),
         )
@@ -168,11 +237,11 @@ class _MyWidgetState extends State<MyApp> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text("🎤 Input Device", style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text('🎤 Input Device', style: TextStyle(fontWeight: FontWeight.bold)),
             DropdownButton<Object?>(
               isExpanded: true,
               value: _selectedInputDevice?['id'],
-              icon: const Text("v"),
+              icon: const Text('v'),
               items: _inputDevices.map<DropdownMenuItem<String>>((device) {
                 return DropdownMenuItem<String>(
                   value: device['id'],
@@ -182,17 +251,17 @@ class _MyWidgetState extends State<MyApp> {
               onChanged: (val) {
                 setState(() {
                   _selectedInputDevice = _inputDevices.firstWhere((device) => device['id'] == val);
-                  status = "Selected Device - ${_selectedInputDevice['label']}";
+                  status = 'Selected Device - ${_selectedInputDevice['label']}';
                   _isRecording = false;
                 });
               },
             ),
             const SizedBox(height: 16),
-            const Text("🔈 Output Device", style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text('🔈 Output Device', style: TextStyle(fontWeight: FontWeight.bold)),
             DropdownButton<Object?>(
               isExpanded: true,
               value: _selectedOutputDevice?['id'],
-              icon: const Text("v"),
+              icon: const Text('v'),
               items: _outputDevices.map<DropdownMenuItem<String>>((device) {
                 return DropdownMenuItem<String>(
                   value: device['id'],
@@ -202,7 +271,7 @@ class _MyWidgetState extends State<MyApp> {
               onChanged: (val) {
                 setState(() {
                   _selectedOutputDevice = _outputDevices.firstWhere((device) => device['id'] == val);
-                  status = "Selected Device - ${_selectedOutputDevice['label']}";
+                  status = 'Selected Device - ${_selectedOutputDevice['label']}';
                   _isListening = false;
                 });
               },
@@ -220,43 +289,37 @@ class _MyWidgetState extends State<MyApp> {
       alignment: WrapAlignment.center,
       children: [
         ElevatedButton.icon(
-          label: Text(_isRecording ? "Stop Recording" : "Start Recording"),
+          label: Text(_isRecording ? 'Stop Recording' : 'Start Recording'),
           onPressed: _handleRecordingAction,
           style: ElevatedButton.styleFrom(backgroundColor: _isRecording ? Colors.red : Colors.green),
         ),
         ElevatedButton.icon(
-          label: const Text("Pause"),
+          label: const Text('Pause'),
           onPressed: () async {
             await _record.pause();
             final isPaused = await _record.isPaused;
             setState(() {
               _isRecording = false;
-              status = isPaused ? "Recording paused" : "Failed to pause recording";
+              status = isPaused ? 'Recording paused' : 'Failed to pause recording';
             });
           },
           style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
         ),
         ElevatedButton.icon(
-          label: const Text("Resume"),
+          label: const Text('Resume'),
           onPressed: () async {
             await _record.resume();
             final isPaused = await _record.isPaused;
             setState(() {
               _isRecording = true;
-              status = !isPaused ? "Recording resumed" : "Failed to resume recording";
+              status = !isPaused ? 'Recording resumed' : 'Failed to resume recording';
             });
           },
           style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
         ),
         ElevatedButton.icon(
-          label: const Text("Dispose"),
-          onPressed: () async {
-            disposeRecord();
-            setState(() {
-              _isRecording = false;
-              status = "Recorder disposed";
-            });
-          },
+          label: const Text('Dispose'),
+          onPressed: stopRecording,
           style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
         ),
       ],
@@ -272,7 +335,7 @@ class _MyWidgetState extends State<MyApp> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("🔊 Volume"),
+            const Text('🔊 Volume'),
             Slider(
               value: _volume,
               min: 0.0,
@@ -287,41 +350,23 @@ class _MyWidgetState extends State<MyApp> {
           ],
         ),
         ElevatedButton.icon(
-          label: Text(_isListening ? "Stop Listening" : "Start Listening"),
+          label: Text(_isListening ? 'Stop Listening' : 'Start Listening'),
           onPressed: _handleListeningAction,
           style: ElevatedButton.styleFrom(backgroundColor: _isListening ? Colors.red : Colors.green),
         ),
         ElevatedButton.icon(
-          label: const Text("Dispose"),
-          onPressed: () async {
-            disposePlayer();
-            setState(() {
-              _isListening = false;
-              status = "Player disposed";
-            });
-          },
+          label: const Text('Dispose'),
+          onPressed: stopListening,
           style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
         ),
       ],
     );
   }
 
-  void disposeRecord() async {
-    await _record.dispose();
-    _recordChannel.sink.close();
-    _recordStreamSubscription?.cancel();
-  }
-
-  void disposePlayer() async {
-    await _player.dispose();
-    _playerChannel.sink.close();
-    _playerStreamSubscription?.cancel();
-  }
-
   @override
   void dispose() {
-    disposeRecord();
-    disposePlayer();
+    stopRecording();
+    stopListening();
     super.dispose();
   }
 }

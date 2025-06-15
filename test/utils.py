@@ -1,14 +1,19 @@
+import socket
 import argparse
 
 # Parse command-line arguments
-parser = argparse.ArgumentParser(description="AudioStream")
+parser = argparse.ArgumentParser(description='AudioStream')
 parser.add_argument('--stereo', action='store_true', help='Enable stereo mode (default: mono)')
 parser.add_argument('--host', default='127.0.0.1', help='Set host (default: 127.0.0.1)')
-parser.add_argument('--port', type=int, default=50000, help='Set port (default: 50000)')
+parser.add_argument('--port', type=int, default=9000, help='Set port (default: 9000)')
 args = parser.parse_args()
 
 HOST = args.host
 PORT = args.port
+
+IN_ROLE = 'recording'
+OUT_ROLE = 'listening'
+PATH = 'ws'
 
 # Set STEREO based on CLI flag
 STEREO = args.stereo
@@ -23,6 +28,7 @@ else:
     CHANNELS = 1
 
 CHUNK = 1024
+BYTE_DEPTH = 2
 
 '''
 hostapi_name: 
@@ -43,14 +49,20 @@ def list_devices(sd, isOutput,  hostapi_name='MME'):
         return
 
     if isOutput:
-        print("\n🔊 Output Devices:")
+        print('\n🔊 Output Devices:')
         for idx, device in enumerate(sd.query_devices()):
             if device['hostapi'] == hostapi_index and device['max_output_channels'] > 0:
                 print(f"{idx}: {device['name']} (Channels: {device['max_output_channels']})")
     else:
-        print("\n🎙️ Input Devices:")
+        print('\n🎙️ Input Devices:')
         for idx, device in enumerate(sd.query_devices()):
             if device['hostapi'] == hostapi_index and device['max_input_channels'] > 0:
                 print(f"{idx}: {device['name']} (Channels: {device['max_input_channels']})")
 
-
+def get_local_ip():
+    # Attempt to get local IP address to use as clientId
+    try:
+        hostname = socket.gethostname()
+        return socket.gethostbyname(hostname)
+    except Exception:
+        return 'unknown-client'

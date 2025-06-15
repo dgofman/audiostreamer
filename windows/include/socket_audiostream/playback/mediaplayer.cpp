@@ -1,4 +1,3 @@
-#define NOMINMAX
 #include <algorithm>					   // std::min
 #include <optional>						   // std::optional<LRESULT>
 #include <flutter/method_channel.h>		   // flutter::MethodChannel
