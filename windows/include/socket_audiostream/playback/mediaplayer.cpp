@@ -14,6 +14,7 @@ constexpr uint32_t kVolume = HashMethodName("volume");
 constexpr uint32_t kIsCreated = HashMethodName("isCreated");
 constexpr uint32_t kIsReady = HashMethodName("isReady");
 constexpr uint32_t kDispose = HashMethodName("dispose");
+constexpr uint32_t kJitter = HashMethodName("jitter");
 constexpr uint32_t kListDevices = HashMethodName("listDevices");
 
 namespace
@@ -174,6 +175,28 @@ namespace playback
 			double value = std::get<double>(val->second);
 			float volume = std::min(static_cast<float>(value), 1.0f);
 			hr = player->SetVolume(volume);
+			break;
+		}
+
+		case kJitter:
+		{
+			auto val = arguments->find(flutter::EncodableValue("min"));
+			if (val == arguments->end() || !std::holds_alternative<int>(val->second))
+			{
+				ErrorMessage("Missing or invalid 'min' parameter", *result);
+				return;
+			}
+			uint32_t min = std::get<int>(val->second);
+
+			val = arguments->find(flutter::EncodableValue("max"));
+			if (val == arguments->end() || !std::holds_alternative<int>(val->second))
+			{
+				ErrorMessage("Missing or invalid 'max' parameter", *result);
+				return;
+			}
+			uint32_t max = std::get<int>(val->second);
+
+			hr = player->SetJitterRange(min, max);
 			break;
 		}
 

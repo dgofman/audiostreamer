@@ -28,6 +28,11 @@ This project uses **Media Foundation** to capture microphone input and includes 
 [Audio Renderer Attributes – Win32 apps | Microsoft Learn](https://learn.microsoft.com/en-us/windows/win32/medfound/audio-renderer-attributes)
 [MF_AUDIO_RENDERER_ATTRIBUTE_FLAGS attribute | Microsoft Learn](https://learn.microsoft.com/en-us/windows/win32/medfound/mf-audio-renderer-attribute-flags-attribute)
 [Alphabetical List of Media Foundation Attributes] (https://learn.microsoft.com/en-us/windows/win32/medfound/alphabetical-list-of-media-foundation-attributes)
+[How WebRTC’s NetEQ Jitter Buffer Provides Smooth Audio] (https://webrtchacks.com/how-webrtcs-neteq-jitter-buffer-provides-smooth-audio/)
+[Bluetooth audio layers: A2DP vs SCO] (https://github.com/google/oboe/wiki/TechNote_BluetoothAudio)
+[Pulse-code modulation (PCM)] (https://en.wikipedia.org/wiki/Pulse-code_modulation)
+[Digital signal processing (DSP)] (https://en.wikipedia.org/wiki/Digital_signal_processing)
+[WebRTC Examples] (https://www.webrtc-experiment.com/)
 
 ## 🚀 Getting Started
 
@@ -137,6 +142,9 @@ This plugin uses the native Windows Media Foundation API for:
 - Low-latency audio capture
 - High performance
 - Native device access without third-party libraries
+
+## Adaptive Jitter Buffer Control (setMinJitterMs)
+In real-time audio streaming over WebSockets, network jitter may cause fluctuations in packet arrival times. To ensure smooth playback and prevent underruns (audio gaps), a jitter buffer is used to accumulate a small delay of audio data before playback. The setMinJitterMs API allows applications to dynamically adjust the minimum jitter buffer size (in milliseconds) depending on network conditions. Increasing the jitter buffer provides more tolerance against unstable or high-latency networks but introduces slightly higher audio delay. Reducing it minimizes latency for stable high-speed connections. The feature allows clients or the server (proxy) to tune the streaming experience to balance between low-latency and playback stability.
 
 ## License
 

@@ -7,18 +7,17 @@ namespace playback
 	HRESULT Player::CreateInstance(Player **ppPlayer)
 	{
 		auto pPlayer = new (std::nothrow) Player();
-		if (pPlayer == NULL)
-		{
+		if (!pPlayer)
 			return E_OUTOFMEMORY;
-		}
 		*ppPlayer = pPlayer;
 		return S_OK;
 	}
 
-	Player::Player() : m_audioClient(nullptr),
-					   m_renderClient(nullptr),
-					   m_isready(false),
-					   m_shutdown(false)
+	Player::Player() : 
+		m_audioClient(nullptr),
+		m_renderClient(nullptr),
+		m_isready(false),
+		m_shutdown(false)
 	{
 		m_audioSamplesReadyEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 	}
@@ -33,168 +32,94 @@ namespace playback
 	{
 		if (!m_audioClient)
 			return false;
-
-		WAVEFORMATEX *pClosestMatch = nullptr;
-		HRESULT hr = m_audioClient->IsFormatSupported(
-			AUDCLNT_SHAREMODE_SHARED,
-			pFormat,
-			&pClosestMatch);
-
-		if (pClosestMatch)
-		{
-			CoTaskMemFree(pClosestMatch);
-		}
-
-		return (hr == S_OK);
+		WAVEFORMATEX *closest = nullptr;
+		HRESULT hr = m_audioClient->IsFormatSupported(AUDCLNT_SHAREMODE_SHARED, pFormat, &closest);
+		if (closest)
+			CoTaskMemFree(closest);
+		return hr == S_OK;
 	}
 
 	HRESULT Player::Start(std::string playerId, LPCWSTR deviceId)
 	{
-		HRESULT hr = S_OK;
-
-		// Stop if already playing
-		hr = EndPlayback();
+		HRESULT hr = EndPlayback();
 		if (FAILED(hr))
-		{
 			return hr;
-		}
 
-		// Initialize COM for this thread
 		hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
 		if (FAILED(hr))
-		{
 			return hr;
-		}
 
-		// Create device enumerator
 		IMMDeviceEnumerator *enumerator = nullptr;
-		hr = CoCreateInstance(
-			__uuidof(MMDeviceEnumerator),
-			NULL,
-			CLSCTX_ALL,
-			__uuidof(IMMDeviceEnumerator),
-			(void **)&enumerator);
+		hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL,
+							  __uuidof(IMMDeviceEnumerator), (void **)&enumerator);
 
 		IMMDevice *device = nullptr;
 		if (SUCCEEDED(hr))
 		{
-			if (deviceId)
-			{
-				hr = enumerator->GetDevice(deviceId, &device);
-			}
-			else
-			{
-				hr = enumerator->GetDefaultAudioEndpoint(eRender, eConsole, &device);
-			}
+			hr = deviceId ? enumerator->GetDevice(deviceId, &device) : enumerator->GetDefaultAudioEndpoint(eRender, eConsole, &device);
 		}
 
-		// Activate audio client
 		if (SUCCEEDED(hr))
-		{
-			hr = device->Activate(
-				__uuidof(IAudioClient),
-				CLSCTX_ALL,
-				NULL,
-				(void **)&m_audioClient);
-		}
+			hr = device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void **)&m_audioClient);
 
-		// Get mix format and set to desired format
 		WAVEFORMATEX *mixFormat = nullptr;
 		if (SUCCEEDED(hr))
-		{
 			hr = m_audioClient->GetMixFormat(&mixFormat);
-		}
 
 		if (SUCCEEDED(hr))
 		{
-			// Match recorder format: 16kHz, mono, 16-bit
+			m_desiredFormat = *mixFormat;
 			m_desiredFormat.wFormatTag = WAVE_FORMAT_PCM;
-			m_desiredFormat.nChannels = mixFormat->nChannels;
-			m_desiredFormat.nSamplesPerSec = mixFormat->nSamplesPerSec;
 			m_desiredFormat.wBitsPerSample = 16;
-			m_desiredFormat.nBlockAlign = m_desiredFormat.nChannels * (m_desiredFormat.wBitsPerSample / 8);
+			m_desiredFormat.nBlockAlign = m_desiredFormat.nChannels * 2;
 			m_desiredFormat.nAvgBytesPerSec = m_desiredFormat.nSamplesPerSec * m_desiredFormat.nBlockAlign;
 			m_desiredFormat.cbSize = 0;
+
+			if (!IsFormatSupported(&m_desiredFormat))
+				m_desiredFormat = *mixFormat;
 		}
 
-		// Check if desired format is supported
-		if (!IsFormatSupported(&m_desiredFormat))
-		{
-			// Use mix format instead
-			m_desiredFormat = *mixFormat;
-		}
+		hr = m_audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
+									   0, 0, &m_desiredFormat, NULL);
 
-		// Initialize with desired format
-		hr = m_audioClient->Initialize(
-			AUDCLNT_SHAREMODE_SHARED,
-			AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
-			0,
-			0,
-			&m_desiredFormat,
-			NULL);
-
-		// Set event handle
 		if (SUCCEEDED(hr))
-		{
 			hr = m_audioClient->SetEventHandle(m_audioSamplesReadyEvent);
-		}
 
-		// Get render client
 		if (SUCCEEDED(hr))
-		{
-			hr = m_audioClient->GetService(
-				__uuidof(IAudioRenderClient),
-				(void **)&m_renderClient);
-		}
+			hr = m_audioClient->GetService(__uuidof(IAudioRenderClient), (void **)&m_renderClient);
 
-		// Get buffer size
 		if (SUCCEEDED(hr))
-		{
 			hr = m_audioClient->GetBufferSize(&m_bufferFrameCount);
-		}
 
-		// Start playback thread
 		if (SUCCEEDED(hr))
 		{
 			m_shutdown = false;
 			m_playbackThread = std::thread(&Player::PlaybackThread, this);
 		}
 
-		// Start audio client
 		if (SUCCEEDED(hr))
 		{
 			hr = m_audioClient->Start();
 			m_isready = true;
 		}
 
-		// Cleanup
 		CoTaskMemFree(mixFormat);
 		SafeRelease(device);
 		SafeRelease(enumerator);
-
 		if (FAILED(hr))
-		{
 			EndPlayback();
-		}
-
 		return hr;
 	}
 
-	HRESULT Player::Stop()
-	{
-		return EndPlayback();
-	}
+	HRESULT Player::Stop() { return EndPlayback(); }
+	HRESULT Player::Dispose() { return EndPlayback(); }
 
 	HRESULT Player::SetVolume(float volume)
 	{
 		if (!m_audioClient)
 			return E_FAIL;
-
 		ISimpleAudioVolume *audioVolume = nullptr;
-		HRESULT hr = m_audioClient->GetService(
-			__uuidof(ISimpleAudioVolume),
-			(void **)&audioVolume);
-
+		HRESULT hr = m_audioClient->GetService(__uuidof(ISimpleAudioVolume), (void **)&audioVolume);
 		if (SUCCEEDED(hr))
 		{
 			hr = audioVolume->SetMasterVolume(volume, NULL);
@@ -203,147 +128,113 @@ namespace playback
 		return hr;
 	}
 
+	HRESULT Player::SetJitterRange(uint32_t minMs, uint32_t maxMs)
+	{
+		m_minJitterMs = minMs;
+		m_maxJitterMs = maxMs;
+		return S_OK;
+	}
+
 	HRESULT Player::AddChunk(const std::vector<uint8_t> &data)
 	{
 		if (!m_isready)
 			return E_FAIL;
-		{
-			std::lock_guard<std::mutex> lock(m_queueMutex);
-			m_audioDataQueue.push_back(data);
-		}
-
-		SetEvent(m_audioSamplesReadyEvent); // Trigger playback
+		std::lock_guard<std::mutex> lock(m_queueMutex);
+		m_jitterBuffer.insert(m_jitterBuffer.end(), data.begin(), data.end());
+		SetEvent(m_audioSamplesReadyEvent);
 		return S_OK;
 	}
 
-	bool Player::IsCreated()
-	{
-		return m_audioClient != nullptr;
-	}
-
-	bool Player::IsReady()
-	{
-		return m_isready;
-	}
+	bool Player::IsCreated() { return m_audioClient != nullptr; }
+	bool Player::IsReady() { return m_isready; }
 
 	HRESULT Player::EndPlayback()
 	{
 		m_shutdown = true;
 		SetEvent(m_audioSamplesReadyEvent);
-
 		if (m_playbackThread.joinable())
-		{
 			m_playbackThread.join();
-		}
-
 		if (m_audioClient)
 		{
 			m_audioClient->Stop();
 			m_isready = false;
 		}
-
-		{
-			std::lock_guard<std::mutex> lock(m_queueMutex);
-			m_audioDataQueue.clear();
-		}
-
+		std::lock_guard<std::mutex> lock(m_queueMutex);
+		m_jitterBuffer.clear();
 		SafeRelease(m_renderClient);
 		SafeRelease(m_audioClient);
 		CoUninitialize();
-
 		return S_OK;
-	}
-
-	HRESULT Player::Dispose()
-	{
-		return EndPlayback();
-	}
-
-	void Player::FeedAudioData(const std::vector<uint8_t> &audioData)
-	{
-		std::lock_guard<std::mutex> lock(m_queueMutex);
-		m_audioDataQueue.push_back(audioData);
-		SetEvent(m_audioSamplesReadyEvent);
 	}
 
 	void Player::PlaybackThread()
 	{
-		HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
-		if (FAILED(hr))
-			return;
-
-		HANDLE waitArray[] = {m_audioSamplesReadyEvent};
+		CoInitializeEx(NULL, COINIT_MULTITHREADED);
+		const size_t bytesPerMs = m_desiredFormat.nAvgBytesPerSec / 1000;
 
 		while (!m_shutdown)
 		{
-			DWORD waitResult = WaitForSingleObject(m_audioSamplesReadyEvent, 50); // Wake max every 50ms
+			DWORD waitResult = WaitForSingleObject(m_audioSamplesReadyEvent, 50);
 			if (waitResult != WAIT_OBJECT_0)
-			{
-				continue; // timeout or failure, re-check shutdown flag
-			}
+				continue;
 
 			UINT32 padding = 0;
 			if (FAILED(m_audioClient->GetCurrentPadding(&padding)))
-			{
-				Sleep(1); // avoid tight retry loop
 				continue;
-			}
-
 			UINT32 framesAvailable = m_bufferFrameCount - padding;
 			if (framesAvailable == 0)
-			{
-				Sleep(1); // nothing to do
 				continue;
-			}
 
 			BYTE *buffer = nullptr;
 			if (FAILED(m_renderClient->GetBuffer(framesAvailable, &buffer)))
+				continue;
+			UINT32 bytesToWrite = framesAvailable * m_desiredFormat.nBlockAlign;
+
+			size_t buffered;
 			{
-				Sleep(1);
+				std::lock_guard<std::mutex> lock(m_queueMutex);
+				buffered = m_jitterBuffer.size();
+			}
+
+			size_t minBytes = m_minJitterMs * bytesPerMs;
+			size_t maxBytes = m_maxJitterMs * bytesPerMs;
+
+			if (buffered < minBytes)
+			{
+				memset(buffer, 0, bytesToWrite);
+				m_renderClient->ReleaseBuffer(framesAvailable, 0);
 				continue;
 			}
 
-			UINT32 framesWritten = 0;
-
-			while (framesWritten < framesAvailable && !m_shutdown)
+			if (buffered > maxBytes)
 			{
-				std::vector<uint8_t> audioData;
+				size_t drop = buffered - maxBytes;
 				{
 					std::lock_guard<std::mutex> lock(m_queueMutex);
-					if (!m_audioDataQueue.empty())
-					{
-						audioData = std::move(m_audioDataQueue.front());
-						m_audioDataQueue.pop_front();
-					}
+					m_jitterBuffer.erase(m_jitterBuffer.begin(), m_jitterBuffer.begin() + drop);
 				}
-
-				if (audioData.empty())
-				{
-					size_t silenceSize = (framesAvailable - framesWritten) * m_desiredFormat.nBlockAlign;
-					memset(buffer + framesWritten * m_desiredFormat.nBlockAlign, 0, silenceSize);
-					framesWritten = framesAvailable;
-					break;
-				}
-
-				size_t bytesAvailable = (framesAvailable - framesWritten) * m_desiredFormat.nBlockAlign;
-				size_t bytesToWrite = std::min(audioData.size(), bytesAvailable);
-
-				memcpy(buffer + framesWritten * m_desiredFormat.nBlockAlign,
-					   audioData.data(), bytesToWrite);
-
-				framesWritten += static_cast<UINT32>(bytesToWrite / m_desiredFormat.nBlockAlign);
-
-				if (bytesToWrite < audioData.size())
-				{
-					std::vector<uint8_t> remaining(audioData.begin() + bytesToWrite, audioData.end());
-					std::lock_guard<std::mutex> lock(m_queueMutex);
-					m_audioDataQueue.push_front(std::move(remaining));
-				}
+				buffered -= drop;
 			}
 
-			m_renderClient->ReleaseBuffer(framesWritten, 0);
-		}
+			size_t copied = 0;
+			{
+				std::lock_guard<std::mutex> lock(m_queueMutex);
+				size_t toCopy = std::min<size_t>(bytesToWrite, m_jitterBuffer.size());
+				std::copy_n(m_jitterBuffer.begin(), toCopy, buffer);
+				m_jitterBuffer.erase(m_jitterBuffer.begin(), m_jitterBuffer.begin() + toCopy);
+				copied = toCopy;
+			}
 
+			m_renderClient->ReleaseBuffer(framesAvailable, 0);
+
+			uint32_t msBuffered = (uint32_t)(buffered * 1000 / m_desiredFormat.nAvgBytesPerSec);
+			if (abs((int)msBuffered - (int)m_lastLoggedJitterMs) > 50)
+			{
+				DebugPrint("Jitter: %ums [min:%ums max:%ums] buffered:%zuB frames:%u\n",
+						   msBuffered, m_minJitterMs, m_maxJitterMs, buffered, framesAvailable);
+				m_lastLoggedJitterMs = msBuffered;
+			}
+		}
 		CoUninitialize();
 	}
 };

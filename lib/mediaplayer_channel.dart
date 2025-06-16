@@ -35,6 +35,14 @@ class MediaPlayerChannel {
     });
   }
 
+  Future<void> setJitterRange(String playerId, int min, int max) async {
+    await _methodChannel.invokeMethod('jitter', {
+      'playerId': playerId,
+      'min': min,
+      'max': max,
+    });
+  }
+
   Future<void> volume(String playerId, double value) {
     return _methodChannel.invokeMethod('volume', {'playerId': playerId, 'value': value});
   }

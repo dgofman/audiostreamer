@@ -21,6 +21,19 @@ using Microsoft::WRL::ComPtr; // Enables ComPtr smart pointer usage
     #define CHANNELS 1
 #endif
 
+// Debug flag
+constexpr bool DEBUG = true;
+
+// Central debug logger
+inline void DebugPrint(const char* fmt, ...)
+{
+	if (!DEBUG) return;
+	va_list args;
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+}
+
 template <class T>
 inline void SafeRelease(T *&pT)
 {

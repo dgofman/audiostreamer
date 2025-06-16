@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 import 'dart:typed_data';
@@ -69,11 +70,7 @@ class _MyWidgetState extends State<MyApp> {
     final websocketCompleter = Completer();
     Uri socketURL = Uri.parse(BASE_URL);
     try {
-      socketURL = socketURL.replace(queryParameters: {
-        'role': role,
-        'roomId': '${roomId}',
-        'clientId': '${_clientId}'
-      });
+      socketURL = socketURL.replace(queryParameters: {'role': role, 'roomId': '${roomId}', 'clientId': '${_clientId}'});
       setState(() {
         status = 'WebSocket try connecting to $socketURL';
       });
@@ -92,9 +89,10 @@ class _MyWidgetState extends State<MyApp> {
   }
 
   Future<void> stopRecording() async {
-    await _record.stop();
     _recordStreamSubscription?.cancel();
     _recordStreamSubscription = null;
+    await _recordingSocket?.sink.close();
+    await _record.stop();
     setState(() {
       _isRecording = false;
       status = 'Stopped recording';
@@ -119,10 +117,9 @@ class _MyWidgetState extends State<MyApp> {
         _recordingSocket!.stream.listen((_) {}, onDone: () => stopRecording());
 
         _recordStreamSubscription = _record.stream.listen(
-          (data) => _recordingSocket?.sink.add(data),
-          onError: (e, st) => log('AudioStream Recording socket error', error: e, stackTrace: st),
-          onDone: () => stopRecording()
-        );
+                (data) => _recordingSocket?.sink.add(data),
+            onError: (e, st) => log('AudioStream Recording socket error', error: e, stackTrace: st),
+            onDone: () => stopRecording());
 
         setState(() {
           _isRecording = true;
@@ -135,9 +132,10 @@ class _MyWidgetState extends State<MyApp> {
   }
 
   Future<void> stopListening() async {
-    await _player.stop();
     _listeningStreamSubscription?.cancel();
     _listeningStreamSubscription = null;
+    await _listeningSocket?.sink.close();
+    await _player.stop();
     setState(() {
       _isListening = false;
       status = 'Stopped listening';
@@ -161,27 +159,36 @@ class _MyWidgetState extends State<MyApp> {
 
         // Listen to WebSocket and buffer
         _listeningStreamSubscription = _listeningSocket!.stream.listen((event) async {
-            try {
-              Uint8List chunk;
-              if (event is List<int>) {
-                chunk = Uint8List.fromList(event);
-              } else if (event is Uint8List) {
-                chunk = event;
-              } else {
-                log('Unsupported data type from listening socket');
-                return;
+          try {
+            Uint8List chunk;
+            if (event is List<int>) {
+              chunk = Uint8List.fromList(event);
+            } else if (event is Uint8List) {
+              chunk = event;
+            } else {
+              if (event is String) {
+                final json = jsonDecode(event);
+                if (json["jitterMinMs"] != null && json["jitterMaxMs"] != null) {
+                  return await _player.setJitterRange(json["jitterMinMs"], json["jitterMaxMs"]);
+                }
               }
-              if (_listeningStreamSubscription != null) {
-                final success = await _player.addChunk(chunk);
+              log('Unsupported data type from listening socket');
+              return;
+            }
+            if (_listeningStreamSubscription != null) {
+              bool success = false;
+              try {
+                success = await _player.addChunk(chunk);
+              } finally {
                 if (!success) await stopListening();
               }
-            } catch (e, st) {
-              log('AudioStream Listening error', error: e, stackTrace: st);
             }
-          },
-          onError: (e, st) => log('AudioStream Listening socket error', error: e, stackTrace: st),
-          onDone: () => stopListening()
-        );
+          } catch (e, st) {
+            log('AudioStream Listening error', error: e, stackTrace: st);
+          }
+        },
+            onError: (e, st) => log('AudioStream Listening socket error', error: e, stackTrace: st),
+            onDone: () => stopListening());
 
         setState(() {
           _isListening = true;
@@ -237,11 +244,33 @@ class _MyWidgetState extends State<MyApp> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('🎤 Input Device', style: TextStyle(fontWeight: FontWeight.bold)),
+            // Input Devices
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('🎤 Input Device', style: TextStyle(fontWeight: FontWeight.bold)),
+                TextButton(
+                  onPressed: () async {
+                    final devices = await _record.listDevices();
+                    setState(() {
+                      _inputDevices = devices;
+                      if (_inputDevices.isNotEmpty) {
+                        _selectedInputDevice = _inputDevices[0];
+                        status = 'Input devices refreshed';
+                      } else {
+                        _selectedInputDevice = null;
+                        status = 'No input devices found';
+                      }
+                    });
+                  },
+                  child: const Text('🔄 Refresh', style: TextStyle(fontSize: 14)),
+                ),
+              ],
+            ),
             DropdownButton<Object?>(
               isExpanded: true,
+              icon: const Text('▼'),
               value: _selectedInputDevice?['id'],
-              icon: const Text('v'),
               items: _inputDevices.map<DropdownMenuItem<String>>((device) {
                 return DropdownMenuItem<String>(
                   value: device['id'],
@@ -250,18 +279,42 @@ class _MyWidgetState extends State<MyApp> {
               }).toList(),
               onChanged: (val) {
                 setState(() {
+                  stopRecording();
                   _selectedInputDevice = _inputDevices.firstWhere((device) => device['id'] == val);
-                  status = 'Selected Device - ${_selectedInputDevice['label']}';
-                  _isRecording = false;
+                  status = 'Selected Input Device: ${_selectedInputDevice['label']}';
                 });
               },
             ),
+
             const SizedBox(height: 16),
-            const Text('🔈 Output Device', style: TextStyle(fontWeight: FontWeight.bold)),
+
+            // Output Devices
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('🔈 Output Device', style: TextStyle(fontWeight: FontWeight.bold)),
+                TextButton(
+                  onPressed: () async {
+                    final devices = await _player.listDevices();
+                    setState(() {
+                      _outputDevices = devices;
+                      if (_outputDevices.isNotEmpty) {
+                        _selectedOutputDevice = _outputDevices[0];
+                        status = 'Output devices refreshed';
+                      } else {
+                        _selectedOutputDevice = null;
+                        status = 'No output devices found';
+                      }
+                    });
+                  },
+                  child: const Text('🔄 Refresh', style: TextStyle(fontSize: 14)),
+                ),
+              ],
+            ),
             DropdownButton<Object?>(
               isExpanded: true,
+              icon: const Text('▼'),
               value: _selectedOutputDevice?['id'],
-              icon: const Text('v'),
               items: _outputDevices.map<DropdownMenuItem<String>>((device) {
                 return DropdownMenuItem<String>(
                   value: device['id'],
@@ -270,9 +323,9 @@ class _MyWidgetState extends State<MyApp> {
               }).toList(),
               onChanged: (val) {
                 setState(() {
+                  stopListening();
                   _selectedOutputDevice = _outputDevices.firstWhere((device) => device['id'] == val);
-                  status = 'Selected Device - ${_selectedOutputDevice['label']}';
-                  _isListening = false;
+                  status = 'Selected Output Device: ${_selectedOutputDevice['label']}';
                 });
               },
             ),

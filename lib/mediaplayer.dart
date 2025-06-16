@@ -42,6 +42,10 @@ class MediaPlayer extends PlatformInterface {
     return _created;
   }
 
+  Future<void> setJitterRange(int min, int max) async {
+    _create(() => _instance.setJitterRange(_playerId, min, max));
+  }
+
   Future<void> volume(double value) async {
     _create(() => _instance.volume(_playerId, value));
   }
