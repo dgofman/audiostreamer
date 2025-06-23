@@ -9,6 +9,9 @@
 
 #include "../utils.h"
 
+#define BUFFER_SIZE_IN_SECONDS 0.1f
+#define REFTIMES_PER_SEC 10000000 // hundred nanoseconds
+
 namespace playback
 {
 	class Player
@@ -31,7 +34,6 @@ namespace playback
 	private:
 		HRESULT EndPlayback();
 		void PlaybackThread();
-		bool IsFormatSupported(const WAVEFORMATEX *pFormat);
 
 		IAudioClient *m_audioClient;
 		IAudioRenderClient *m_renderClient;
@@ -39,7 +41,6 @@ namespace playback
 		std::atomic<bool> m_shutdown;
 		
 		WAVEFORMATEX m_desiredFormat;
-		HANDLE m_audioSamplesReadyEvent;
 		UINT32 m_bufferFrameCount;
 		std::thread m_playbackThread;
 		std::mutex m_queueMutex;

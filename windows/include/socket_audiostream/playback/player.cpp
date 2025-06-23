@@ -13,30 +13,14 @@ namespace playback
 		return S_OK;
 	}
 
-	Player::Player() : 
-		m_audioClient(nullptr),
-		m_renderClient(nullptr),
-		m_isready(false),
-		m_shutdown(false)
-	{
-		m_audioSamplesReadyEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-	}
+	Player::Player() : m_audioClient(nullptr),
+					   m_renderClient(nullptr),
+					   m_isready(false),
+					   m_shutdown(false) {}
 
 	Player::~Player()
 	{
 		Dispose();
-		CloseHandle(m_audioSamplesReadyEvent);
-	}
-
-	bool Player::IsFormatSupported(const WAVEFORMATEX *pFormat)
-	{
-		if (!m_audioClient)
-			return false;
-		WAVEFORMATEX *closest = nullptr;
-		HRESULT hr = m_audioClient->IsFormatSupported(AUDCLNT_SHAREMODE_SHARED, pFormat, &closest);
-		if (closest)
-			CoTaskMemFree(closest);
-		return hr == S_OK;
 	}
 
 	HRESULT Player::Start(std::string playerId, LPCWSTR deviceId)
@@ -66,24 +50,36 @@ namespace playback
 		if (SUCCEEDED(hr))
 			hr = m_audioClient->GetMixFormat(&mixFormat);
 
-		if (SUCCEEDED(hr))
-		{
-			m_desiredFormat = *mixFormat;
-			m_desiredFormat.wFormatTag = WAVE_FORMAT_PCM;
-			m_desiredFormat.wBitsPerSample = 16;
-			m_desiredFormat.nBlockAlign = m_desiredFormat.nChannels * 2;
-			m_desiredFormat.nAvgBytesPerSec = m_desiredFormat.nSamplesPerSec * m_desiredFormat.nBlockAlign;
-			m_desiredFormat.cbSize = 0;
+		m_desiredFormat = *mixFormat;
+#ifdef STEREO
+		m_desiredFormat.nChannels = 2;
+		m_desiredFormat.nSamplesPerSec = 48000;
+#else
+		m_desiredFormat.nChannels = 1;
+		m_desiredFormat.nSamplesPerSec = 16000;
+#endif
+		m_desiredFormat.wFormatTag = WAVE_FORMAT_PCM;
+		m_desiredFormat.wBitsPerSample = 16;
+		m_desiredFormat.nBlockAlign = (m_desiredFormat.nChannels * m_desiredFormat.wBitsPerSample) / 8;
+		m_desiredFormat.nAvgBytesPerSec = m_desiredFormat.nSamplesPerSec * m_desiredFormat.nBlockAlign;
+		m_desiredFormat.cbSize = 0;
 
-			if (!IsFormatSupported(&m_desiredFormat))
-				m_desiredFormat = *mixFormat;
+		REFERENCE_TIME soundBufferDuration = (REFERENCE_TIME)(REFTIMES_PER_SEC * BUFFER_SIZE_IN_SECONDS);
+		hr = m_audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED,
+									   AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY,
+									   soundBufferDuration, 0, &m_desiredFormat, NULL);
+		if (FAILED(hr))
+		{
+			DebugPrint("Falling back to mixFormat\n");
+			m_desiredFormat = *mixFormat;
+			hr = m_audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED,
+									   AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY,
+									   soundBufferDuration, 0, &m_desiredFormat, NULL);
 		}
 
-		hr = m_audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
-									   0, 0, &m_desiredFormat, NULL);
-
-		if (SUCCEEDED(hr))
-			hr = m_audioClient->SetEventHandle(m_audioSamplesReadyEvent);
+		DebugPrint("Device wFormatTag: %d, Channels: %d, nSamplesPerSec: %d, nBlockAlign: %u, nAvgBytesPerSec: %u, wBitsPerSample: %u, cbSize: %d\n",
+				   m_desiredFormat.wFormatTag, m_desiredFormat.nChannels, m_desiredFormat.nSamplesPerSec,
+				   m_desiredFormat.nBlockAlign, m_desiredFormat.nAvgBytesPerSec, m_desiredFormat.wBitsPerSample, m_desiredFormat.cbSize);
 
 		if (SUCCEEDED(hr))
 			hr = m_audioClient->GetService(__uuidof(IAudioRenderClient), (void **)&m_renderClient);
@@ -141,7 +137,6 @@ namespace playback
 			return E_FAIL;
 		std::lock_guard<std::mutex> lock(m_queueMutex);
 		m_jitterBuffer.insert(m_jitterBuffer.end(), data.begin(), data.end());
-		SetEvent(m_audioSamplesReadyEvent);
 		return S_OK;
 	}
 
@@ -151,7 +146,6 @@ namespace playback
 	HRESULT Player::EndPlayback()
 	{
 		m_shutdown = true;
-		SetEvent(m_audioSamplesReadyEvent);
 		if (m_playbackThread.joinable())
 			m_playbackThread.join();
 		if (m_audioClient)
@@ -174,10 +168,6 @@ namespace playback
 
 		while (!m_shutdown)
 		{
-			DWORD waitResult = WaitForSingleObject(m_audioSamplesReadyEvent, 50);
-			if (waitResult != WAIT_OBJECT_0)
-				continue;
-
 			UINT32 padding = 0;
 			if (FAILED(m_audioClient->GetCurrentPadding(&padding)))
 				continue;

@@ -229,12 +229,24 @@ namespace recording
 				}
 				if (SUCCEEDED(hr))
 				{
-					hr = pMediaType->SetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, 48000);
+#ifdef STEREO
+						hr = pMediaType->SetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, 48000);
+#else
+						hr = pMediaType->SetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, 16000);
+#endif
 				}
 				if (SUCCEEDED(hr))
 				{
+#ifdef STEREO
 					hr = pMediaType->SetUINT32(MF_MT_AUDIO_NUM_CHANNELS, 2);
+#else
+					hr = pMediaType->SetUINT32(MF_MT_AUDIO_NUM_CHANNELS, 1);
+#endif
 				}
+				UINT32 samples, channels;
+				pMediaType->GetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, &samples);
+				pMediaType->GetUINT32(MF_MT_AUDIO_NUM_CHANNELS, &channels);
+				DebugPrint("MF_MT_AUDIO_SAMPLES_PER_SECOND: %u, MF_MT_AUDIO_NUM_CHANNELS:%u\n", samples, channels);
 				if (SUCCEEDED(hr))
 				{
 					*ppMediaType = pMediaType;

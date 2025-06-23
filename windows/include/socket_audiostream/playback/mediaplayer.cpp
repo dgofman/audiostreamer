@@ -1,9 +1,11 @@
 #include <algorithm>					   // std::min
+#include <deque>						   // std::deque
 #include <optional>						   // std::optional<LRESULT>
 #include <flutter/method_channel.h>		   // flutter::MethodChannel
 #include <flutter/standard_method_codec.h> // flutter::StandardMethodCodec
 
 #include "mediaplayer.h"
+#include "../utils.h"
 
 constexpr uint32_t kCreate = HashMethodName("create");
 constexpr uint32_t kHasPermission = HashMethodName("hasPermission");

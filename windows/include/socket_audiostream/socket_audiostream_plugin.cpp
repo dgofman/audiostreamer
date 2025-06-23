@@ -1,13 +1,15 @@
 #include <flutter/plugin_registrar_windows.h> // flutter::
-#include "socket_audiostream_plugin.h"            // AudioStreamerPlugin
+#include "socket_audiostream_plugin.h"        // AudioStreamerPlugin
 #include "recording/mediarecorder.h"          // recording::
 #include "playback/mediaplayer.h"             // playback::
 
-#include "utils.h" // SAMPLE_RATE and CHANNELS
-
 void SocketAudiostreamPluginRegisterWithRegistrar(FlutterDesktopPluginRegistrarRef prr)
 {
-    std::wcout << L"SocketAudiostreamPlugin - Channels: " << CHANNELS << ", SampleRate: " << SAMPLE_RATE << std::endl;
+    #ifdef STEREO
+        std::cout << "SocketAudiostreamPlugin - STEREO: True" << std::endl;
+    #else
+        std::cout << "SocketAudiostreamPlugin - STEREO: False" << std::endl;
+    #endif
 
     auto registrar = flutter::PluginRegistrarManager::GetInstance()
                          ->GetRegistrar<flutter::PluginRegistrarWindows>(prr);

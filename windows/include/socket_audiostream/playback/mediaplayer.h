@@ -1,6 +1,8 @@
 #ifndef FLUTTER_PLUGIN_MEDIA_PLAYER_H_
 #define FLUTTER_PLUGIN_MEDIA_PLAYER_H_
 
+#include <flutter/method_call.h>      // MethodCall
+#include <flutter/method_result.h>    // MethodResult
 #include <flutter/plugin_registrar_windows.h> // flutter::Plugin, flutter::PluginRegistrarWindows
 
 #include "player.h"
