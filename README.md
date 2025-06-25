@@ -32,14 +32,14 @@ However, DFT has time complexity O(N²) — meaning performance gets slow as fra
 
 Instead, this project uses kissFFT, a highly efficient, tiny Fast Fourier Transform (FFT) library. FFT reduces the complexity to O(N log N), which makes it about 100x faster than DFT for typical audio frames.
 
-[Audio Renderer Attributes – Win32 apps | Microsoft Learn](https://learn.microsoft.com/en-us/windows/win32/medfound/audio-renderer-attributes)
-[MF_AUDIO_RENDERER_ATTRIBUTE_FLAGS attribute | Microsoft Learn](https://learn.microsoft.com/en-us/windows/win32/medfound/mf-audio-renderer-attribute-flags-attribute)
-[Alphabetical List of Media Foundation Attributes] (https://learn.microsoft.com/en-us/windows/win32/medfound/alphabetical-list-of-media-foundation-attributes)
-[How WebRTC’s NetEQ Jitter Buffer Provides Smooth Audio] (https://webrtchacks.com/how-webrtcs-neteq-jitter-buffer-provides-smooth-audio/)
-[Bluetooth audio layers: A2DP vs SCO] (https://github.com/google/oboe/wiki/TechNote_BluetoothAudio)
-[Pulse-code modulation (PCM)] (https://en.wikipedia.org/wiki/Pulse-code_modulation)
-[Digital signal processing (DSP)] (https://en.wikipedia.org/wiki/Digital_signal_processing)
-[WebRTC Examples] (https://www.webrtc-experiment.com/)
+- [Audio Renderer Attributes – Win32 apps | Microsoft Learn](https://learn.microsoft.com/en-us/windows/win32/medfound/audio-renderer-attributes)
+- [MF_AUDIO_RENDERER_ATTRIBUTE_FLAGS attribute | Microsoft Learn](https://learn.microsoft.com/en-us/windows/win32/medfound/mf-audio-renderer-attribute-flags-attribute)
+- [Alphabetical List of Media Foundation Attributes](https://learn.microsoft.com/en-us/windows/win32/medfound/alphabetical-list-of-media-foundation-attributes)
+- [How WebRTC’s NetEQ Jitter Buffer Provides Smooth Audio](https://webrtchacks.com/how-webrtcs-neteq-jitter-buffer-provides-smooth-audio/)
+- [Bluetooth audio layers: A2DP vs SCO](https://github.com/google/oboe/wiki/TechNote_BluetoothAudio)
+- [Pulse-code modulation (PCM)](https://en.wikipedia.org/wiki/Pulse-code_modulation)
+- [Digital signal processing (DSP)](https://en.wikipedia.org/wiki/Digital_signal_processing)
+- [WebRTC Examples](https://www.webrtc-experiment.com/)
 
 ## 🚀 Getting Started
 
@@ -98,6 +98,8 @@ flutter pub add plugin_platform_interface --dev
 flutter clean
 flutter pub get
 flutter run -d windows
+or
+STEREO=1 flutter run -d windows
 ```
 
 See the [example/](example/) directory for a working Flutter app that demonstrates plugin usage.
