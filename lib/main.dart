@@ -41,6 +41,8 @@ class _MyWidgetState extends State<MyApp> {
   final _player = MediaPlayer();
   bool _isRecording = false;
   bool _isListening = false;
+  bool _isStereo = false;
+  bool _isDenoise = false;
   double _volume = 0.1;
   dynamic _selectedInputDevice;
   dynamic _selectedOutputDevice;
@@ -58,6 +60,7 @@ class _MyWidgetState extends State<MyApp> {
     try {
       _inputDevices = await _record.listDevices();
       _outputDevices = await _player.listDevices();
+      _isStereo = await _player.isStereo();
       _selectedInputDevice = _inputDevices.isNotEmpty ? _inputDevices[0] : null;
       _selectedOutputDevice = _outputDevices.isNotEmpty ? _outputDevices[0] : null;
       setState(() => status = 'Ready');
@@ -217,6 +220,8 @@ class _MyWidgetState extends State<MyApp> {
               _recordControlButtons(),
               const SizedBox(height: 20),
               _playerControlButtons(),
+              const SizedBox(height: 20),
+              _playerDeboise(),
             ],
           ),
         ),
@@ -411,6 +416,28 @@ class _MyWidgetState extends State<MyApp> {
           label: const Text('Dispose'),
           onPressed: stopListening,
           style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
+        ),
+      ],
+    );
+  }
+
+  Widget _playerDeboise() {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('🪄 Denoise'),
+            Switch(
+              value: _isDenoise,
+              onChanged: _isStereo ? null : (val) {
+                _player.setDenoise(val);
+                setState(() => _isDenoise = val);
+              },
+            ),
+          ],
         ),
       ],
     );

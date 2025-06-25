@@ -20,6 +20,7 @@ add_executable(${BINARY_NAME} WIN32
   "../include/socket_audiostream/recording/recorder.cpp"
   "../include/socket_audiostream/playback/mediaplayer.cpp"
   "../include/socket_audiostream/playback/player.cpp"
+  "../include/socket_audiostream/playback/denoise_lite.cpp"
 )
 
 # Add preprocessor definitions for the build version.

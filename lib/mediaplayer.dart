@@ -58,6 +58,14 @@ class MediaPlayer extends PlatformInterface {
     return _create(() => _instance.isReady(_playerId));
   }
 
+  Future<bool> isStereo() async {
+    return _create(() => _instance.isStereo(_playerId));
+  }
+
+  Future<void> setDenoise(bool value) async {
+    _create(() => _instance.setDenoise(_playerId, value));
+  }
+
   Future<void> dispose() async {
     if (_created) {
       _created = false;

@@ -61,6 +61,20 @@ class MediaPlayerChannel {
     ) ?? false);
   }
 
+  Future<bool> isStereo(String playerId) async {
+    return (await _methodChannel.invokeMethod<bool>(
+      'isStereo',
+      {'playerId': playerId},
+    ) ?? false);
+  }
+
+  Future<void> setDenoise(String playerId, bool value) async {
+    await _methodChannel.invokeMethod(
+      'setDenoise',
+      {'playerId': playerId, 'value': value},
+    );
+  }
+
   Future<void> dispose(String playerId) async {
     await _methodChannel.invokeMethod(
       'dispose',

@@ -25,6 +25,13 @@ This project uses **Media Foundation** to capture microphone input and includes 
 - 🔇 **Noise Suppression (NS)**
 - 🎚️ **Automatic Gain Control (AGC)**
 
+📖 DFT vs. kissFFT — and why use kissFFT
+In this project, the audio noise suppression (Denoise Lite) requires a frequency analysis of each frame. A basic option is the Discrete Fourier Transform (DFT), which computes frequency components using simple math loops.
+
+However, DFT has time complexity O(N²) — meaning performance gets slow as frame size grows. Even at small frame sizes (e.g. 512 samples), DFT can consume a lot of CPU — making it impractical for real-time audio.
+
+Instead, this project uses kissFFT, a highly efficient, tiny Fast Fourier Transform (FFT) library. FFT reduces the complexity to O(N log N), which makes it about 100x faster than DFT for typical audio frames.
+
 [Audio Renderer Attributes – Win32 apps | Microsoft Learn](https://learn.microsoft.com/en-us/windows/win32/medfound/audio-renderer-attributes)
 [MF_AUDIO_RENDERER_ATTRIBUTE_FLAGS attribute | Microsoft Learn](https://learn.microsoft.com/en-us/windows/win32/medfound/mf-audio-renderer-attribute-flags-attribute)
 [Alphabetical List of Media Foundation Attributes] (https://learn.microsoft.com/en-us/windows/win32/medfound/alphabetical-list-of-media-foundation-attributes)

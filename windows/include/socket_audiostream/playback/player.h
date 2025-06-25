@@ -1,13 +1,11 @@
 #pragma once
 
 #include <Audioclient.h> // m_audioClient
+#include <thread>		 // std::thread
+#include <mutex>		 // std::mutex
+#include <vector>		 // std::vector
 
-#include <thread>
-#include <mutex>
-#include <deque>
-#include <vector>
-
-#include "../utils.h"
+#include "denoise_lite.h"
 
 #define BUFFER_SIZE_IN_SECONDS 0.1f
 #define REFTIMES_PER_SEC 10000000 // hundred nanoseconds
@@ -29,6 +27,8 @@ namespace playback
 		HRESULT SetJitterRange(uint32_t minMs, uint32_t maxMs);
 		bool IsCreated();
 		bool IsReady();
+		bool IsStereo();
+		void SetDenoise(bool val);
 		HRESULT Dispose();
 
 	private:
@@ -39,7 +39,7 @@ namespace playback
 		IAudioRenderClient *m_renderClient;
 		std::atomic<bool> m_isready;
 		std::atomic<bool> m_shutdown;
-		
+
 		WAVEFORMATEX m_desiredFormat;
 		UINT32 m_bufferFrameCount;
 		std::thread m_playbackThread;
@@ -50,5 +50,8 @@ namespace playback
 		uint32_t m_minJitterMs = 200;
 		uint32_t m_maxJitterMs = 800;
 		uint32_t m_lastLoggedJitterMs = 0;
+
+		std::atomic<bool> m_denoise;
+		denoise_lite::DenoiseLite m_noiseSuppressor;
 	};
 }

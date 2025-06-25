@@ -1,6 +1,8 @@
-#include <algorithm>					   // std::min
+#include <algorithm> // std::min
+
 #include "player.h"
 #include "mediaplayer.h"
+#include "../utils.h"
 
 namespace playback
 {
@@ -16,7 +18,11 @@ namespace playback
 	Player::Player() : m_audioClient(nullptr),
 					   m_renderClient(nullptr),
 					   m_isready(false),
-					   m_shutdown(false) {}
+					   m_denoise(false),
+					   m_shutdown(false)
+	{
+		m_noiseSuppressor.Reset();
+	}
 
 	Player::~Player()
 	{
@@ -73,8 +79,8 @@ namespace playback
 			DebugPrint("Falling back to mixFormat\n");
 			m_desiredFormat = *mixFormat;
 			hr = m_audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED,
-									   AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY,
-									   soundBufferDuration, 0, &m_desiredFormat, NULL);
+										   AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY,
+										   soundBufferDuration, 0, &m_desiredFormat, NULL);
 		}
 
 		DebugPrint("Device wFormatTag: %d, Channels: %d, nSamplesPerSec: %d, nBlockAlign: %u, nAvgBytesPerSec: %u, wBitsPerSample: %u, cbSize: %d\n",
@@ -142,6 +148,17 @@ namespace playback
 
 	bool Player::IsCreated() { return m_audioClient != nullptr; }
 	bool Player::IsReady() { return m_isready; }
+	void Player::SetDenoise(bool val) {
+		m_denoise = val;
+	}
+	bool Player::IsStereo()
+	{
+		#ifdef STEREO
+			return true;
+		#endif
+		return false;
+	}
+
 
 	HRESULT Player::EndPlayback()
 	{
@@ -165,6 +182,10 @@ namespace playback
 	{
 		CoInitializeEx(NULL, COINIT_MULTITHREADED);
 		const size_t bytesPerMs = m_desiredFormat.nAvgBytesPerSec / 1000;
+		const size_t frameSamples = m_desiredFormat.nSamplesPerSec / 100; // 10ms frame
+		const size_t frameBytes = frameSamples * m_desiredFormat.nBlockAlign;
+
+		std::vector<float> frameBuffer(frameSamples);
 
 		while (!m_shutdown)
 		{
@@ -210,9 +231,41 @@ namespace playback
 			{
 				std::lock_guard<std::mutex> lock(m_queueMutex);
 				size_t toCopy = std::min<size_t>(bytesToWrite, m_jitterBuffer.size());
-				std::copy_n(m_jitterBuffer.begin(), toCopy, buffer);
-				m_jitterBuffer.erase(m_jitterBuffer.begin(), m_jitterBuffer.begin() + toCopy);
-				copied = toCopy;
+				if (!m_denoise)
+				{
+					std::copy_n(m_jitterBuffer.begin(), toCopy, buffer);
+					m_jitterBuffer.erase(m_jitterBuffer.begin(), m_jitterBuffer.begin() + toCopy);
+					copied = toCopy;
+				}
+				else
+				{
+					size_t processed = 0;
+					while (processed + frameBytes <= toCopy)
+					{
+						// Copy 16-bit PCM to float frameBuffer
+						for (size_t i = 0; i < frameSamples; ++i)
+						{
+							int16_t sample = *(int16_t *)(&m_jitterBuffer[processed + i * 2]);
+							frameBuffer[i] = sample / 32768.0f;
+						}
+
+						m_noiseSuppressor.ProcessFrame(frameBuffer.data(), frameSamples);
+
+						// Copy float back to 16-bit PCM
+						for (size_t i = 0; i < frameSamples; ++i)
+						{
+							float s = std::clamp(frameBuffer[i], -1.0f, 1.0f);
+							int16_t sample = static_cast<int16_t>(s * 32767.0f);
+							*(int16_t *)(&buffer[processed + i * 2]) = sample;
+						}
+
+						processed += frameBytes;
+					}
+
+					// Remove processed bytes
+					m_jitterBuffer.erase(m_jitterBuffer.begin(), m_jitterBuffer.begin() + processed);
+					copied = processed;
+				}
 			}
 
 			m_renderClient->ReleaseBuffer(framesAvailable, 0);

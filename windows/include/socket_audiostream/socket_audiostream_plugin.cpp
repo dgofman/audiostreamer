@@ -6,9 +6,9 @@
 void SocketAudiostreamPluginRegisterWithRegistrar(FlutterDesktopPluginRegistrarRef prr)
 {
     #ifdef STEREO
-        std::cout << "SocketAudiostreamPlugin - STEREO: True" << std::endl;
+        std::cout << "SocketAudiostreamPlugin - STEREO" << std::endl;
     #else
-        std::cout << "SocketAudiostreamPlugin - STEREO: False" << std::endl;
+        std::cout << "SocketAudiostreamPlugin - MONO" << std::endl;
     #endif
 
     auto registrar = flutter::PluginRegistrarManager::GetInstance()

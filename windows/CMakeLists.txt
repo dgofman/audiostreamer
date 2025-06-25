@@ -80,6 +80,7 @@ else()
     "include/socket_audiostream/recording/recorder.cpp"
     "include/socket_audiostream/playback/mediaplayer.cpp"
     "include/socket_audiostream/playback/player.cpp"
+    "include/socket_audiostream/playback/denoise_lite.cpp"
   )
 
   # Add dependency libraries and include directories.

@@ -15,6 +15,8 @@ constexpr uint32_t kAddChunk = HashMethodName("addChunk");
 constexpr uint32_t kVolume = HashMethodName("volume");
 constexpr uint32_t kIsCreated = HashMethodName("isCreated");
 constexpr uint32_t kIsReady = HashMethodName("isReady");
+constexpr uint32_t kIsStereo = HashMethodName("isStereo");
+constexpr uint32_t kSetDenoise  = HashMethodName("setDenoise");
 constexpr uint32_t kDispose = HashMethodName("dispose");
 constexpr uint32_t kJitter = HashMethodName("jitter");
 constexpr uint32_t kListDevices = HashMethodName("listDevices");
@@ -209,6 +211,23 @@ namespace playback
 		case kIsReady:
 			result->Success(EncodableValue(player->IsReady()));
 			return;
+
+		case kIsStereo:
+			result->Success(EncodableValue(player->IsStereo()));
+			return;
+
+		case kSetDenoise:
+		{
+			auto val = arguments->find(flutter::EncodableValue("value"));
+			if (val == arguments->end() || !std::holds_alternative<bool>(val->second))
+			{
+				ErrorMessage("Missing or invalid 'value' parameter", *result);
+				return;
+			}
+			player->SetDenoise(std::get<bool>(val->second));
+			result->Success();
+			return;
+		}
 
 		case kDispose:
 		{
