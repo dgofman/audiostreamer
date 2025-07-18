@@ -8,3 +8,6 @@
 - Deleted windows/runner/flutter_window.cpp
 ## [0.1.4] - 2025-06-11
 - Fixed a window handler
+
+## [1.0.0] - 2025-07-17
+- Integrated RNNoise-based denoise library for audio processing

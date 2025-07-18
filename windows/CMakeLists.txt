@@ -86,7 +86,7 @@ else()
   file(GLOB DENOISE_SOURCES "denoise/*.c")
 
   # Add them to the build target
-  target_sources(${BINARY_NAME} PRIVATE ${DENOISE_SOURCES})
+  target_sources(${PLUGIN_NAME} PRIVATE ${DENOISE_SOURCES})
 
   # Ensure they're compiled as C (not C++)
   set_source_files_properties(${DENOISE_SOURCES} PROPERTIES LANGUAGE C)
@@ -105,5 +105,9 @@ else()
   target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 
   # Cannot open include file: 'audiostreamer/audio_streamer_plugin.h'
-  target_include_directories(${PLUGIN_NAME} INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+  # Cannot open include file: 'denoise.h': No such file or directory 
+  target_include_directories(${PLUGIN_NAME}
+    INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/denoise"
+  )
 endif()

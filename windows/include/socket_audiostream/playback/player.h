@@ -5,7 +5,7 @@
 #include <mutex>		 // std::mutex
 #include <vector>		 // std::vector
 
-#include "denoise/denoise.h" // Include RNNoise header
+#include "denoise.h" // Include RNNoise header
 
 #define BUFFER_SIZE_IN_SECONDS 0.1f
 #define REFTIMES_PER_SEC 10000000 // hundred nanoseconds

@@ -1,4 +1,3 @@
-#include <algorithm>					   // std::min
 #include <deque>						   // std::deque
 #include <optional>						   // std::optional<LRESULT>
 #include <flutter/method_channel.h>		   // flutter::MethodChannel
@@ -177,7 +176,7 @@ namespace playback
 				return;
 			}
 			double value = std::get<double>(val->second);
-			float volume = std::min(static_cast<float>(value), 1.0f);
+			float volume = min(static_cast<float>(value), 1.0f);
 			hr = player->SetVolume(volume);
 			break;
 		}

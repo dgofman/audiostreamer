@@ -55,8 +55,11 @@ target_link_libraries(${BINARY_NAME} PRIVATE
 # 'AudioStreamerPluginRegisterWithRegistrar': inconsistent dll linkage
 target_compile_definitions(${BINARY_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 
-# Cannot open include file: 'audiostreamer/audio_streamer_plugin.h'
-target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
+# Cannot open include file: 'audiostreamer/audio_streamer_plugin.h' and denoise.h
+target_include_directories(${BINARY_NAME} 
+  PRIVATE "${CMAKE_SOURCE_DIR}"
+  PRIVATE "${CMAKE_SOURCE_DIR}/denoise"
+)
 
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)

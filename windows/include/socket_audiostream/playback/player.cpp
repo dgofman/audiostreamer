@@ -1,5 +1,3 @@
-#include <algorithm> // std::min
-
 #include "player.h"
 #include "mediaplayer.h"
 #include "../utils.h"
@@ -272,7 +270,7 @@ namespace playback
 
 			{
 				std::lock_guard<std::mutex> lock(m_queueMutex);
-				size_t toCopy = std::min<size_t>(bytesToWrite, m_jitterBuffer.size());
+				size_t toCopy = min(bytesToWrite, m_jitterBuffer.size());
 
 				if (m_denoiseLevel == DenoiseLevel::NONE)
 				{
@@ -284,7 +282,7 @@ namespace playback
 					size_t available = m_jitterBuffer.size();
 					size_t framesAvailableToProcess = available / inputFrameBytes;
 					size_t framesWritable = bytesToWrite / processingFrameBytes;
-					size_t framesToProcess = std::min(framesAvailableToProcess, framesWritable);
+					size_t framesToProcess = min(framesAvailableToProcess, framesWritable);
 
 					if (framesToProcess == 0 || !m_rnnoiseState)
 					{
@@ -323,7 +321,7 @@ namespace playback
 						for (int i = 0; i < FRAME_SIZE; i++)
 						{
 							outputBuffer[i] = static_cast<int16_t>(
-								std::max(-32768.0f, std::min(32767.0f, processingBuffer[i])));
+								max(-32768.0f, min(32767.0f, processingBuffer[i])));
 						}
 
 						processed += inputFrameBytes;

@@ -9,6 +9,11 @@
 #include <flutter/event_channel.h>		   // flutter::MethodResult
 #include <flutter/encodable_value.h>	   // flutter::EncodableValue
 
+#define NOMINMAX
+
+#define min(a,b) (((a) < (b)) ? (a) : (b))
+#define max(a,b) (((a) > (b)) ? (a) : (b))
+
 using Microsoft::WRL::ComPtr; // Enables ComPtr smart pointer usage
 
 // Debug flag
