@@ -3,6 +3,12 @@ import 'dart:typed_data';
 import 'package:socket_audiostream/mediaplayer_channel.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
+enum DenoiseLevel {
+  none,
+  soft,
+  full,
+}
+
 class MediaPlayer extends PlatformInterface {
   static final Object _token = Object();
 
@@ -62,8 +68,8 @@ class MediaPlayer extends PlatformInterface {
     return _create(() => _instance.isStereo(_playerId));
   }
 
-  Future<void> setDenoise(bool value) async {
-    _create(() => _instance.setDenoise(_playerId, value));
+  Future<void> setDenoise(DenoiseLevel level) async {
+    _create(() => _instance.setDenoise(_playerId, level));
   }
 
   Future<void> dispose() async {

@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:socket_audiostream/mediaplayer.dart';
 
 class MediaPlayerChannel {
   final _methodChannel = const MethodChannel('com.softigent.audiostream.MediaPlayer');
@@ -68,10 +69,10 @@ class MediaPlayerChannel {
     ) ?? false);
   }
 
-  Future<void> setDenoise(String playerId, bool value) async {
+  Future<void> setDenoise(String playerId, DenoiseLevel level) async {
     await _methodChannel.invokeMethod(
       'setDenoise',
-      {'playerId': playerId, 'value': value},
+      {'playerId': playerId, 'level': level.index},
     );
   }
 

@@ -5,13 +5,20 @@
 #include <mutex>		 // std::mutex
 #include <vector>		 // std::vector
 
-#include "denoise_lite.h"
+#include "denoise/denoise.h" // Include RNNoise header
 
 #define BUFFER_SIZE_IN_SECONDS 0.1f
 #define REFTIMES_PER_SEC 10000000 // hundred nanoseconds
 
 namespace playback
 {
+	enum class DenoiseLevel
+	{
+		NONE = 0,
+		SOFT = 1,
+		FULL = 2
+	};
+
 	class Player
 	{
 	public:
@@ -25,11 +32,11 @@ namespace playback
 		HRESULT SetVolume(float volume);
 		HRESULT AddChunk(const std::vector<uint8_t> &data);
 		HRESULT SetJitterRange(uint32_t minMs, uint32_t maxMs);
+		HRESULT SetDenoise(DenoiseLevel level);
+		HRESULT Dispose();
 		bool IsCreated();
 		bool IsReady();
 		bool IsStereo();
-		void SetDenoise(bool val);
-		HRESULT Dispose();
 
 	private:
 		HRESULT EndPlayback();
@@ -37,7 +44,6 @@ namespace playback
 
 		IAudioClient *m_audioClient;
 		IAudioRenderClient *m_renderClient;
-		std::atomic<bool> m_isready;
 		std::atomic<bool> m_shutdown;
 
 		WAVEFORMATEX m_desiredFormat;
@@ -51,7 +57,8 @@ namespace playback
 		uint32_t m_maxJitterMs = 800;
 		uint32_t m_lastLoggedJitterMs = 0;
 
-		std::atomic<bool> m_denoise;
-		denoise_lite::DenoiseLite m_noiseSuppressor;
+		// RNNoise
+		DenoiseLevel m_denoiseLevel;
+		DenoiseState *m_rnnoiseState;
 	};
 }

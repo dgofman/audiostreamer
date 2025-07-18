@@ -14,14 +14,22 @@ add_executable(${BINARY_NAME} WIN32
   "main.cpp"
   "utils.cpp"
   "win32_window.cpp"
-  "../flutter/generated_plugin_registrant.cc"
-  "../include/socket_audiostream/socket_audiostream_plugin.cpp"
-  "../include/socket_audiostream/recording/mediarecorder.cpp"
-  "../include/socket_audiostream/recording/recorder.cpp"
-  "../include/socket_audiostream/playback/mediaplayer.cpp"
-  "../include/socket_audiostream/playback/player.cpp"
-  "../include/socket_audiostream/playback/denoise_lite.cpp"
+  "${CMAKE_SOURCE_DIR}/flutter/generated_plugin_registrant.cc"
+  "${CMAKE_SOURCE_DIR}/include/socket_audiostream/socket_audiostream_plugin.cpp"
+  "${CMAKE_SOURCE_DIR}/include/socket_audiostream/recording/mediarecorder.cpp"
+  "${CMAKE_SOURCE_DIR}/include/socket_audiostream/recording/recorder.cpp"
+  "${CMAKE_SOURCE_DIR}/include/socket_audiostream/playback/mediaplayer.cpp"
+  "${CMAKE_SOURCE_DIR}/include/socket_audiostream/playback/player.cpp"
 )
+
+# Collect all denoise .c files into a variable
+file(GLOB DENOISE_SOURCES "${CMAKE_SOURCE_DIR}/denoise/*.c")
+
+# Add them to the build target
+target_sources(${BINARY_NAME} PRIVATE ${DENOISE_SOURCES})
+
+# Ensure they're compiled as C (not C++)
+set_source_files_properties(${DENOISE_SOURCES} PROPERTIES LANGUAGE C)
 
 # Add preprocessor definitions for the build version.
 target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION=\"${FLUTTER_VERSION}\"")

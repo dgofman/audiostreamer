@@ -218,13 +218,18 @@ namespace playback
 
 		case kSetDenoise:
 		{
-			auto val = arguments->find(flutter::EncodableValue("value"));
-			if (val == arguments->end() || !std::holds_alternative<bool>(val->second))
+			auto val = arguments->find(flutter::EncodableValue("level"));
+			if (val == arguments->end() || !std::holds_alternative<int>(val->second))
 			{
-				ErrorMessage("Missing or invalid 'value' parameter", *result);
+				ErrorMessage("Missing or invalid 'level' parameter", *result);
 				return;
 			}
-			player->SetDenoise(std::get<bool>(val->second));
+			int level = std::get<int>(val->second);
+			if (level < 0 || level > 2) {
+				ErrorMessage("Invalid denoise level (expected 0=NONE, 1=SOFT, 2=FULL)", *result);
+				return;
+			}
+			player->SetDenoise(static_cast<DenoiseLevel>(level));
 			result->Success();
 			return;
 		}

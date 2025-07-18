@@ -80,8 +80,16 @@ else()
     "include/socket_audiostream/recording/recorder.cpp"
     "include/socket_audiostream/playback/mediaplayer.cpp"
     "include/socket_audiostream/playback/player.cpp"
-    "include/socket_audiostream/playback/denoise_lite.cpp"
   )
+
+  # Collect all denoise .c files into a variable
+  file(GLOB DENOISE_SOURCES "denoise/*.c")
+
+  # Add them to the build target
+  target_sources(${BINARY_NAME} PRIVATE ${DENOISE_SOURCES})
+
+  # Ensure they're compiled as C (not C++)
+  set_source_files_properties(${DENOISE_SOURCES} PROPERTIES LANGUAGE C)
 
   # Add dependency libraries and include directories.
   target_link_libraries(${PLUGIN_NAME} PRIVATE

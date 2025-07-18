@@ -32,8 +32,8 @@ class _MyWidgetState extends State<MyApp> {
         _headers = headers ?? {},
         _clientId = clientId ?? DateTime.now().millisecondsSinceEpoch.toString();
 
-  late WebSocketChannel? _recordingSocket;
-  late WebSocketChannel? _listeningSocket;
+  WebSocketChannel? _recordingSocket;
+  WebSocketChannel? _listeningSocket;
   StreamSubscription? _recordStreamSubscription;
   StreamSubscription? _listeningStreamSubscription;
 
@@ -42,7 +42,7 @@ class _MyWidgetState extends State<MyApp> {
   bool _isRecording = false;
   bool _isListening = false;
   bool _isStereo = false;
-  bool _isDenoise = false;
+  List<bool> _denoise = [false, false];
   double _volume = 0.1;
   dynamic _selectedInputDevice;
   dynamic _selectedOutputDevice;
@@ -89,6 +89,18 @@ class _MyWidgetState extends State<MyApp> {
       if (!websocketCompleter.isCompleted) websocketCompleter.complete();
     }
     return null;
+  }
+
+  void _updateDenoiseMode() async {
+    if (await _player.isReady) {
+      await stopListening();
+    }
+    if (!_denoise[0]) {
+      _player.setDenoise(DenoiseLevel.none);
+    } else {
+      _player.setDenoise(_denoise[1] ? DenoiseLevel.full : DenoiseLevel.soft);
+    }
+    await _handleListeningAction();
   }
 
   Future<void> stopRecording() async {
@@ -206,6 +218,7 @@ class _MyWidgetState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       home: Scaffold(
         appBar: AppBar(title: const Text('Audio Stream Controller')),
         body: SingleChildScrollView(
@@ -400,9 +413,9 @@ class _MyWidgetState extends State<MyApp> {
               max: 1.0,
               onChanged: _isListening
                   ? (val) async {
-                      setState(() => _volume = val);
-                      await _player.volume(_volume);
-                    }
+                    setState(() => _volume = val);
+                    await _player.volume(_volume);
+                  }
                   : null,
             ),
           ],
@@ -426,15 +439,26 @@ class _MyWidgetState extends State<MyApp> {
       spacing: 10,
       runSpacing: 10,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const Text('🪄 Denoise'),
             Switch(
-              value: _isDenoise,
+              value: _denoise[0],
               onChanged: _isStereo ? null : (val) {
-                _player.setDenoise(val);
-                setState(() => _isDenoise = val);
+                setState(() => _denoise[0] = val);
+                _updateDenoiseMode();
+              },
+            ),
+            const SizedBox(width: 30),
+            const Text('🌀 Full Denoise'),
+            Checkbox(
+              value: _denoise[1],
+              onChanged: !_denoise[0] ? null : (val) {
+                setState(() {
+                  _denoise[1] = val ?? false;
+                  _updateDenoiseMode();
+                });
               },
             ),
           ],
